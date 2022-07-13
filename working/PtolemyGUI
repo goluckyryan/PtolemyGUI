@@ -1,9 +1,11 @@
 #!/usr/bin/bash
 
+dir=$(pwd)
+
 if [[ -f DWBA ]]; then
  dummy=10
 else
- cp /opt/Ptolemy/DWBA .
+ cp $dir/../DWBA .
 fi
 
-root -l /opt/Ptolemy/working/PtolemyGUI.C
+root -l PtolemyGUI.C
