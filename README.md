@@ -1,4 +1,4 @@
-#Info
+# Info
 
 This is a wrapper for Ptolemy DWBA calcalation using GUI from CERN ROOT. 
 
@@ -6,20 +6,20 @@ The Ptolemy reference is M. H. Macfarlane and S. C. Pieper, ANL-76-11 Rev. 1, Ar
 
 The core program (ptolemy) only works in Linux
 
-#Usage:
+# Usage:
 
 in the working directory, run PtolemyGUI
 
 Actually the program can run anywhere. It will copy the DWBA file to the present directory.
 
-#output:
+# output:
 
 1. DWBA.in, this is the input file for the ptolmey
 2. DWBA.output, this is the output file for the ptolmey
 3. DWBA.Ex.txt, this is the excitation energy
 4. DWBA.root, this is a root file contains the DWBA angular distribution in TGraph
 
-#program structure
+# program structure
 
 The GUI is a simple CERN ROOT GUI. 
 
