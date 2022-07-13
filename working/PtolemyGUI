@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+
+if [[ -f DWBA ]]; then
+ dummy=10
+else
+ cp /opt/Ptolemy/DWBA .
+fi
+
+root -l /opt/Ptolemy/working/PtolemyGUI.C
