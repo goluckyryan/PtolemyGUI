@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-dir=$(pwd)
+dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 if [[ -f DWBA ]]; then
  dummy=10
@@ -8,4 +8,4 @@ else
  cp $dir/../DWBA .
 fi
 
-root -l PtolemyGUI.C
+root -l $dir/PtolemyGUI.C
