@@ -383,9 +383,9 @@ void MyMainFrame::Command(int ID) {
       statusLabel->SetText("Running Ptolemy.....");
       int output = 1; 
       if( OS_Type == 1 ){
-        output = system("/opt/Ptolemy/Cleopatra/ptolemy <DWBA.in> DWBA.out");
+        output = system("../Cleopatra/ptolemy <DWBA.in> DWBA.out");
       }else{
-        output = system("/opt/Ptolemy/Cleopatra/ptolemy_mac <DWBA.in> DWBA.out");
+        output = system("../Cleopatra/ptolemy_mac <DWBA.in> DWBA.out");
       }
       
       statusLabel->SetText("Check terminal, if no massage, Ptolemy run well.");
