@@ -17,7 +17,8 @@ Actually the program can run anywhere. It will copy the DWBA file to the present
 1. DWBA.in, this is the input file for the ptolmey
 2. DWBA.output, this is the output file for the ptolmey
 3. DWBA.Ex.txt, this is the excitation energy
-4. DWBA.root, this is a root file contains the DWBA angular distribution in TGraph
+4. DWBA.Xsec.txt, this is the angular distribution in txt format
+5. DWBA.root, this is a root file contains the DWBA angular distribution in TGraph
 
 # program structure
 

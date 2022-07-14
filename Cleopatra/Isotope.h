@@ -22,7 +22,7 @@
 #include <algorithm>
 using namespace std;
 
-string massData="../Cleopatra/mass20.txt";
+string massData="/Cleopatra/mass20.txt";
 
 // about the mass**.txt
 // Mass Excess = (ATOMIC MASS - A)*amu | e.g. n : (1.088664.91585E-6-1)*amu
@@ -113,14 +113,12 @@ private:
   bool isFindOnce;
 
   void findHeliosPath(){
-	  dataSource = massData;
-//    heliosPath = getenv("HELIOSSYS");
-//    if( heliosPath ){
-//      dataSource = heliosPath;
-//      dataSource += "/analysis" + massData;
-//    }else{
-//      dataSource = ".." + massData;
-//    }
+    dataSource = massData;
+    heliosPath = getenv("PtolemyPath");
+    if( heliosPath ){
+      dataSource = heliosPath;
+      dataSource += "/.." +  massData;
+    }
   }
   
   

@@ -2,6 +2,8 @@
 
 dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+export PtolemyPath=$dir
+
 if [[ -f DWBA ]]; then
  dummy=10
 else

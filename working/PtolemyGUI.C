@@ -323,11 +323,7 @@ void MyMainFrame::OpenFile(int ID){
   
   TString oldFileName = fileName;
     
-  if ( ID == 0 ) fileName = "detectorGeo.txt";
-  if ( ID == 1 ) fileName = "reactionConfig.txt";
-  if ( ID == 2 ) fileName = "Ex.txt";
   if ( ID == 3 ) fileName = "DWBA";
-  if ( ID == 4 ) fileName = "../Armory/Check_Simulation_Config.txt";
   if ( ID == 5 ) fileName = "DWBA.in";
   if ( ID == 6 ) fileName = "DWBA.out";
   if ( ID == 7 ) fileName = "DWBA.Xsec.txt";
@@ -380,12 +376,14 @@ void MyMainFrame::Command(int ID) {
     if( isRun->GetState() && IsFileExist("DWBA.in") ) {
       //printf("run ptolemy...........\n");
       
+      char * path = getenv("PtolemyPath");
+      
       statusLabel->SetText("Running Ptolemy.....");
       int output = 1; 
       if( OS_Type == 1 ){
-        output = system("../Cleopatra/ptolemy <DWBA.in> DWBA.out");
+        output = system(Form("%s/../Cleopatra/ptolemy <DWBA.in> DWBA.out", path));
       }else{
-        output = system("../Cleopatra/ptolemy_mac <DWBA.in> DWBA.out");
+        output = system(Form("%s/../Cleopatra/ptolemy_mac <DWBA.in> DWBA.out", path));
       }
       
       statusLabel->SetText("Check terminal, if no massage, Ptolemy run well.");
