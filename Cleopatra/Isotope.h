@@ -113,11 +113,12 @@ private:
   bool isFindOnce;
 
   void findHeliosPath(){
-    dataSource = massData;
-    heliosPath = getenv("PtolemyPath");
+    heliosPath = getenv("HELIOSSYS");
     if( heliosPath ){
       dataSource = heliosPath;
-      dataSource += "/.." +  massData;
+      dataSource += "/analysis" + massData;
+    }else{
+      dataSource = ".." + massData;
     }
   }
   

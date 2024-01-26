@@ -21,12 +21,13 @@
 #include <TCanvas.h>
 #include <TObjArray.h>
 #include <TGraph.h>
+#include <TStyle.h>
 #include <TF1.h>
 #include <TAxis.h>
 #include <TH1F.h>
 #include <TLegend.h>
 
-void PlotTGraphTObjArray(TString rootFileName){
+void PlotTGraphTObjArray(TString rootFileName, bool isSavePNG = false){
   
   TFile * file = new TFile(rootFileName, "READ");
   
@@ -40,11 +41,14 @@ void PlotTGraphTObjArray(TString rootFileName){
   TCanvas * cPlots = new TCanvas("cPlots", "Ptolemy Results", 0, 0, 800, 600);
   cPlots->SetLogy();
   
-  TLegend * legend = new TLegend( 0.6, 0.2, 0.9, 0.4); 
+  TLegend * legend = new TLegend( 0.6, 0.6, 0.9, 0.9); //x1, y1, x2, y2
   
   const int n = gList->GetLast() + 1 ; 
   
   TGraph * gr[n];
+
+  const std::vector<int> color = {kBlack, kRed, kOrange+7, kYellow+1, kGreen+2, kGreen+3, kBlue, kBlue+3, kMagenta, kMagenta+2, kGray+2, kRed+2, kYellow+3 };
+  short nColor = color.size();
 
   //Get minimum, maximum Y
   double maxY = 0;
@@ -52,7 +56,7 @@ void PlotTGraphTObjArray(TString rootFileName){
   for ( int i = 0; i < n ; i++){
     
     gr[i] = (TGraph *) gList->At(i);
-    gr[i]->SetLineColor(i+1);
+    gr[i]->SetLineColor(color[ i % nColor]);
     gr[i]->GetXaxis()->SetTitle("#theta_{CM} [deg]");
     gr[i]->GetYaxis()->SetTitle("d#sigma/d#Omega [mb/sr]");
     
@@ -68,8 +72,6 @@ void PlotTGraphTObjArray(TString rootFileName){
     if( maxy > maxY ) maxY = maxy;
   }
   
-  
-  
   for ( int i = 0; i < n ; i++){
     gr[i]->Draw("same");
     
@@ -82,7 +84,19 @@ void PlotTGraphTObjArray(TString rootFileName){
   }
   legend->Draw();
   
+  cPlots->SetGrid(1,1);
+
   cPlots->Update();
   cPlots->Draw();
+
+  if( isSavePNG ){
+    TDatime dateTime;
+    TString outPNGName = Form("Xsec_%d%02d%02d_%06d.png", dateTime.GetYear(), dateTime.GetMonth(), dateTime.GetDay(), dateTime.GetTime());
+      
+    cPlots->SaveAs(outPNGName);
+    printf("%s\n", outPNGName.Data());
+      
+    gROOT->ProcessLine(".q");
+  }
   
 }
