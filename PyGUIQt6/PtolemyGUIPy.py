@@ -6,10 +6,10 @@ import csv
 import socket
 import sys
 import time
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QComboBox, QCheckBox, QLineEdit, QLabel, QVBoxLayout, QWidget, QTabWidget, QGridLayout, QMessageBox, QFileDialog, QProgressBar
-from PyQt6.QtCore import Qt, QThread, QTimer, QObject, pyqtSignal
-#from functools import partial
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QPushButton, QVBoxLayout, QWidget
+from functools import partial
+from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QPushButton, QComboBox, QWidget, QMenu, QTextEdit, QFileDialog
+from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtGui import QFont
 
 
 class MyWindow(QMainWindow):
@@ -17,45 +17,42 @@ class MyWindow(QMainWindow):
     super().__init__()
 
     self.setWindowTitle("Ptolemy GUI")
-    self.setGeometry(100, 100, 1000, 200)
+    self.setGeometry(100, 100, 1000, 700)
+    self.setMinimumSize(400, 600)
 
-    # Create a table with 0 row and 8 columns
-    self.table = QTableWidget(0, 9)
-    self.table.setHorizontalHeaderLabels(["Reaction", "gs-spin", "orbital", "spin-pi(Ex)", "Ex", "ELab [MeV/u]", "Entrance Pot.", "Exist Pot.", "Aux"])
-    
-    # Set up button to add new rows
-    self.add_button = QPushButton("Add Row")
-    self.add_button.clicked.connect(self.add_row)
+    self.text_edit = QTextEdit()
+    self.text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+    font = QFont("Courier New", 8)  # You can adjust the size as needed
+    self.text_edit.setFont(font)
+
+    # self.text_edit.setFixedHeight(500)
+    try:
+      with open("../DWBA", 'r') as file:
+        content = file.read()
+        self.text_edit.setText(content)
+    except Exception as e:
+        self.text_edit.setText(f"Failed to load file:\n{e}")
+
+    # self.view_file_button = QPushButton("Help")
+    # self.view_file_button.clicked.connect(self.open_file_viewer)
 
     self.cal_button = QPushButton("Calculate DWBA")
+    self.cal_button.clicked.connect(self.CalDWBA)
+
 
     # Set up the layout
-    layout = QVBoxLayout()
-    layout.addWidget(self.add_button)
-    layout.addWidget(self.table)
-    layout.addWidget(self.cal_button)
+    layout = QGridLayout()
+    layout.addWidget(self.cal_button, 0, 0)
+    layout.addWidget(self.text_edit, 0, 1, 5, 5)
 
     # Set up the container and layout
     container = QWidget()
     container.setLayout(layout)
     self.setCentralWidget(container)
 
-    self.add_row()
 
-  def add_row(self):
-    # Add a new row to the table
-    row_position = self.table.rowCount()
-    self.table.insertRow(row_position)
-    # Optionally populate the new row with empty items
-    for column in range(5):
-      self.table.setItem(row_position, column, QTableWidgetItem(""))
-
-    combo_box1 = QComboBox()
-    combo_box1.addItems(["Option 1", "Option 2", "Option 3"])
-    combo_box2 = QComboBox()
-    combo_box2.addItems(["Option 1", "Option 2", "Option 3"])
-    self.table.setCellWidget(row_position, 6, combo_box1)
-    self.table.setCellWidget(row_position, 7, combo_box2)
+  def CalDWBA(self):
+    print("Number of Row ")
 
 
 if __name__ == "__main__":
