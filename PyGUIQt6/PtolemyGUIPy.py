@@ -28,9 +28,23 @@ class PlotWindow(QWidget):
     self.headers = []
     self.x, self.data, self.headers = self.read_data(XsecFile)
 
-    layout = QVBoxLayout(self)
+    self.log_scale_checkbox = QCheckBox("Use Log Scale for Y-Axis")
+    self.log_scale_checkbox.setChecked(True)
+    self.log_scale_checkbox.stateChanged.connect(self.plot_plotly_graph)
+
+    self.gridline_checkbox = QCheckBox("Show Gridlines")
+    self.gridline_checkbox.stateChanged.connect(self.plot_plotly_graph)
+
+    self.showMarker_checkBox = QCheckBox("Show Markers")
+    self.showMarker_checkBox.stateChanged.connect(self.plot_plotly_graph)
+
     self.web_view = QWebEngineView()
-    layout.addWidget(self.web_view)
+
+    layout = QGridLayout(self)
+    layout.addWidget(self.showMarker_checkBox, 0, 0)
+    layout.addWidget(self.log_scale_checkbox, 0, 1)
+    layout.addWidget(self.gridline_checkbox, 0, 2)
+    layout.addWidget(self.web_view, 1, 0, 5, 3)
 
     self.plot_plotly_graph()
 
@@ -76,15 +90,62 @@ class PlotWindow(QWidget):
     # Create a Plotly figure
     fig = go.Figure()
 
+    if self.showMarker_checkBox.isChecked() :
+      plotStyle = 'lines+markers'
+    else:
+      plotStyle = 'lines'
+
     # Add traces for each column in data against x
     for i, y in enumerate(self.data):
-        fig.add_trace(go.Scatter(x=self.x, y=y, mode='lines+markers', name=self.headers[i + 1]))  # Use headers for names
+      fig.add_trace(go.Scatter(x=self.x, y=y, mode=plotStyle, name=self.headers[i + 1]))  # Use headers for names
 
     # Update layout for better presentation
     fig.update_layout(
-        xaxis_title="Angle_CM [Deg]",
-        yaxis_title="Values",
-        template="plotly"
+      xaxis_title="Angle_CM [Deg]",
+      yaxis_title="Xsec [mb/sr]",
+      template="plotly",
+      plot_bgcolor='rgba(0,0,0,0)',  # Set plot background to transparent
+      paper_bgcolor='rgba(0,0,0,0)',  # Set paper background to transparent
+      legend=dict(
+        x=1,          # X position (1 = far right)
+        y=1,          # Y position (1 = top)
+        xanchor='right',  # Anchor the legend to the right
+        yanchor='top',    # Anchor the legend to the top
+        bgcolor='rgba(255, 255, 255, 0.5)',  # Optional: semi-transparent background for legend
+        bordercolor='rgba(0, 0, 0, 0.5)',  # Optional: border color
+        borderwidth=1    # Optional: border width
+      ),
+      yaxis=dict(
+        # linecolor='black',  # Set y-axis line color to black
+        type ='log' if self.log_scale_checkbox.isChecked() else 'linear',  # Toggle y-axis scale
+        gridcolor='lightgray',  # Set gridline color
+        gridwidth=1,  # Set gridline width (in pixels)
+        showgrid = self.gridline_checkbox.isChecked()  # Toggle gridlines for y-axis
+      ),
+      xaxis=dict(
+        # linecolor='black',  # Set x-axis line color to black
+        gridcolor='lightgray',  # Set gridline color
+        gridwidth=1,  # Set gridline width (in pixels)
+        showgrid = self.gridline_checkbox.isChecked()  # Toggle gridlines for x-axis as well
+      ),
+      margin=dict(l=40, r=40, t=40, b=40),  # Set margins to reduce empty space
+      # width=800,  # Optional: set fixed width for the plot
+      # height=600  # Optional: set fixed height for the plot
+    )
+
+    fig.add_shape(
+      # Line with reference to the plot
+      type="rect",
+      xref="paper",
+      yref="paper",
+      x0=0,
+      y0=0,
+      x1=1.0,
+      y1=1.0,
+      line=dict(
+          color="black",
+          width=1,
+      )
     )
 
     # Save the plot as an HTML file in a temporary location
@@ -95,6 +156,7 @@ class PlotWindow(QWidget):
     # Load the HTML file in QWebEngineView
     self.web_view.setUrl(QUrl.fromLocalFile(html_file))
 
+################################################## MainWindow
 class MyWindow(QMainWindow):
   def __init__(self):
     super().__init__()
@@ -257,6 +319,20 @@ class MyWindow(QMainWindow):
   def file_exists(self,file_path):
     return os.path.exists(file_path) and os.path.isfile(file_path)
   
+  def A_file_changed_after_B_file(self, file_a, file_b):
+    try:
+      modified_time_a = os.path.getmtime(file_a)
+      modified_time_b = os.path.getmtime(file_b)
+
+      # Compare the modification times
+      return modified_time_a > modified_time_b
+    except FileNotFoundError as e:
+      print(f"Error: {e}")
+      return False
+    except Exception as e:
+      print(f"An error occurred: {e}")
+      return False
+
   def CalDWBA(self):
     
     self.BashCommand("cd ../Cleopatra; make;cd ../PyGUIQt6")
@@ -292,13 +368,13 @@ class MyWindow(QMainWindow):
       option = str(self.cbXsec.currentIndex())
       self.BashCommand("../Cleopatra/ExtractXSec " + self.DWBAFileName + ".out " +  option)
 
-    ### Plot ##
     if self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
-      print("dasdsadsa")
-      self.open_plot_window()
+      if self.A_file_changed_after_B_file(self.DWBAFileName + ".Xsec.txt", self.DWBAFileName + ".out") :
+        self.open_plot_window()
+      else:
+        self.leStatus.setText( self.DWBAFileName + ".Xsec.txt is not newer than " + self.DWBAFileName + ".out")
 
   def open_plot_window(self):
-    print("dsadasdsadafkal;k;lkl;kdasdsadsa")
     if self.plot_window is None :
       self.plot_window = PlotWindow(self.DWBAFileName + ".Xsec.txt") 
       self.plot_window.show()
@@ -306,6 +382,7 @@ class MyWindow(QMainWindow):
     else:
       self.plot_window.read_data(self.DWBAFileName + ".Xsec.txt") 
       self.plot_window.plot_plotly_graph()
+      self.plot_window.show()
 
   def closeEvent(self, event):
     if self.plot_window:
