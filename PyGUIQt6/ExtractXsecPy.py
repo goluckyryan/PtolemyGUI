@@ -204,7 +204,7 @@ def extract_xsec(read_file, index_for_elastic):
       for r in reaction:
         file_out.write(f"#{r}\n")
 
-      file_out.write(f"{"Angle":>8}")
+      file_out.write(f"{'Angle':>8}")
       for t in title:
         file_out.write(f"{t:>40}")
       file_out.write("\n")
