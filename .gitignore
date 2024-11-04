@@ -5,3 +5,5 @@ Cleopatra/ExtractXSecFromText
 Cleopatra/InFileCreator
 Cleopatra/Isotope
 Cleopatra/PlotTGraphTObjArray
+
+__pycache__
