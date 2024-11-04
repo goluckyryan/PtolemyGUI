@@ -1,4 +1,3 @@
 
 
-~>sudo apt install python3-pyqt6 python3-pip
-~>python3 -m pip install pyqt6  PyQt6-WebEngine Plotly
+~>python3 -m pip install PyQt6 PyQt6-WebEngine==6.4 Plotly

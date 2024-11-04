@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QFont
+
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import plotly.graph_objects as go
 import tempfile
@@ -68,7 +69,7 @@ class PlotWindow(QWidget):
 
           headers = elab_parts  # Use the split parts as headers
           header_found = True  # Set the flag to True to skip this block in future iterations
-          print(f"ELab parts found: {elab_parts}")  # Print or process this as needed
+          # print(f"ELab parts found: {elab_parts}")  # Print or process this as needed
           continue
         
         # Split the line by whitespace
@@ -82,8 +83,6 @@ class PlotWindow(QWidget):
           for i in range(len(parts) - 1):
             data[i].append(float(parts[i + 1]))  # Rest of the columns
 
-
-      print(headers)
     return x, data, headers
 
   def plot_plotly_graph(self):
@@ -378,7 +377,7 @@ class MyWindow(QMainWindow):
     if self.plot_window is None :
       self.plot_window = PlotWindow(self.DWBAFileName + ".Xsec.txt") 
       self.plot_window.show()
-      self.plot_window.setAttribute(Qt.WA_DeleteOnClose)  # Optional: Automatically delete when closed
+      # self.plot_window.setAttribute(Qt.WA_DeleteOnClose)  # Optional: Automatically delete when closed
     else:
       self.plot_window.read_data(self.DWBAFileName + ".Xsec.txt") 
       self.plot_window.plot_plotly_graph()
