@@ -17,6 +17,8 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 import plotly.graph_objects as go
 import tempfile
 
+from ExtractXsecPy import extract_xsec
+
 class PlotWindow(QWidget):
   def __init__(self, XsecFile):
     super().__init__()
@@ -27,7 +29,7 @@ class PlotWindow(QWidget):
     self.x = []
     self.data = []
     self.headers = []
-    self.x, self.data, self.headers = self.read_data(XsecFile)
+    self.read_data(XsecFile)
 
     self.log_scale_checkbox = QCheckBox("Use Log Scale for Y-Axis")
     self.log_scale_checkbox.setChecked(True)
@@ -50,9 +52,9 @@ class PlotWindow(QWidget):
     self.plot_plotly_graph()
 
   def read_data(self,file_path):
-    x = []  # List for the first column
-    data = [] # 2D list for other columns
-    headers = []  # List to store headers
+    self.x = []  # List for the first column
+    self.data = [] # 2D list for other columns
+    self.headers = []  # List to store headers
 
     with open(file_path, 'r') as file:
       header_found = False  # Flag to indicate if the header has been found
@@ -62,12 +64,7 @@ class PlotWindow(QWidget):
           continue
         
         if not header_found:
-          parts = line.split('ELab')
-          elab_parts = [parts[0]]  # Start with the first part
-          for part in parts[1:]:
-              elab_parts.append('ELab' + part)  # Prepend 'ELab' to each subsequent part
-
-          headers = elab_parts  # Use the split parts as headers
+          self.headers = line.split()  # Use the split parts as headers
           header_found = True  # Set the flag to True to skip this block in future iterations
           # print(f"ELab parts found: {elab_parts}")  # Print or process this as needed
           continue
@@ -75,15 +72,15 @@ class PlotWindow(QWidget):
         # Split the line by whitespace
         parts = line.split()
         if len(parts) > 0:  # Make sure there is at least one column
-          x.append(float(parts[0]))  # First column
+          self.x.append(float(parts[0]))  # First column
           # Append the rest of the columns to data
-          if len(data) == 0:
+          if len(self.data) == 0:
             # Initialize the data array with the right number of sublists
-            data = [[] for _ in range(len(parts) - 1)]
+            self.data = [[] for _ in range(len(parts) - 1)]
           for i in range(len(parts) - 1):
-            data[i].append(float(parts[i + 1]))  # Rest of the columns
-
-    return x, data, headers
+            self.data[i].append(float(parts[i + 1]))  # Rest of the columns
+            
+      # print(self.headers)
 
   def plot_plotly_graph(self):
     # Create a Plotly figure
@@ -142,15 +139,15 @@ class PlotWindow(QWidget):
       x1=1.0,
       y1=1.0,
       line=dict(
-          color="black",
-          width=1,
+        color="black",
+        width=1,
       )
     )
 
     # Save the plot as an HTML file in a temporary location
     with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
-        fig.write_html(tmp_file.name)
-        html_file = tmp_file.name
+      fig.write_html(tmp_file.name)
+      html_file = tmp_file.name
 
     # Load the HTML file in QWebEngineView
     self.web_view.setUrl(QUrl.fromLocalFile(html_file))
@@ -255,7 +252,7 @@ class MyWindow(QMainWindow):
 
     self.text_edit = QTextEdit()
     self.text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-    font = QFont("Courier New", 8)  # You can adjust the size as needed
+    font = QFont("Courier New", 10)  # You can adjust the size as needed
     self.text_edit.setFont(font)
 
     self.leStatus = QLineEdit("")
@@ -334,6 +331,8 @@ class MyWindow(QMainWindow):
 
   def CalDWBA(self):
     
+    self.SaveFile()
+    
     self.BashCommand("cd ../Cleopatra; make;cd ../PyGUIQt6")
 
     print(" Is Create InFile : " + str(self.chkCreateInFile.isChecked() ))
@@ -348,7 +347,7 @@ class MyWindow(QMainWindow):
 
       self.BashCommand("../Cleopatra/InFileCreator " +  self.DWBAFileName + aMin + aMax + aSize)
 
-    isRunOK = False
+    isRunOK = True
     if self.chkRunPtolemy.isChecked() :
       os_name = platform.system()
 
@@ -358,14 +357,14 @@ class MyWindow(QMainWindow):
       if os_name == "Darwin":
         self.BashCommand("../Cleopatra/ptolemy_mac <" + self.DWBAFileName + ".in>" + " " + self.DWBAFileName + ".out")
 
-      if self.bashResult.returncode == 0 :
-        isRunOK = True
-      else:
+      if self.bashResult.returncode != 0 :
+        isRunOK = False
         self.leStatus.setText("Ptolemy Run Error. Should check the out File.")
 
     if isRunOK and self.chkExtracrXsec.isChecked() and self.file_exists(self.DWBAFileName + ".out") :
-      option = str(self.cbXsec.currentIndex())
-      self.BashCommand("../Cleopatra/ExtractXSec " + self.DWBAFileName + ".out " +  option)
+      extract_xsec(self.DWBAFileName + ".out", self.cbXsec.currentIndex())
+      # option = str(self.cbXsec.currentIndex())
+      # self.BashCommand("../Cleopatra/ExtractXSec " + self.DWBAFileName + ".out " +  option)
 
     if self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
       if self.A_file_changed_after_B_file(self.DWBAFileName + ".Xsec.txt", self.DWBAFileName + ".out") :

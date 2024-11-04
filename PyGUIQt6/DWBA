@@ -47,5 +47,5 @@
 #82Kr(d,p)83Kr      0        1d3/2    3/2+         1.220   10MeV/u  AK
 #82Kr(d,p)83Kr      0        2s1/2    1/2+         1.220   10MeV/u  AK
 
-10Be(d,d)10Be       0       none      0+         0.000   9MeV/u  ZZ
-10Be(d,d)10Be       0       none      0+         0.000   9MeV/u  AA
+11C(d,p)12C       3/2-    0p1/2   2+   4.4   10MeV/u AK
+11C(d,p)12C       3/2-    0p1/2   1+  15.1   10MeV/u AK
