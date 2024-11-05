@@ -15,6 +15,7 @@ from PyQt6.QtGui import QFont
 from ExtractXsecPy import extract_xsec
 from PlotWindow import PlotWindow
 from ExWindow import ExWindow
+from MatPlotLibWindow import MatPlotLibWindow
 
 ################################################## MainWindow
 class MyWindow(QMainWindow):
@@ -27,8 +28,8 @@ class MyWindow(QMainWindow):
 
     self.DWBAFileName = "DWBA"
     self.bashResult = ""
-    self.plot_window = None
-    self.Ex_window = None
+    self.plot_window = MatPlotLibWindow() 
+    self.Ex_window = ExWindow()
 
     # Set up Group Box for DWBA Control
     self.gbDWBA = QGroupBox("DWBA")
@@ -104,35 +105,35 @@ class MyWindow(QMainWindow):
     group_layout.addWidget(self.bnCalDWBA, 12, 0, 1, 2)
 
     # Ex Group
-    # self.gbEx = QGroupBox("Ex")
-    # Ex_layout = QGridLayout()
-    # Ex_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-    # self.gbEx.setLayout(Ex_layout)
+    self.gbEx = QGroupBox("Ex")
+    Ex_layout = QGridLayout()
+    Ex_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+    self.gbEx.setLayout(Ex_layout)
 
-    # lbName = QLabel("Isotop :")
-    # lbName.setAlignment(Qt.AlignmentFlag.AlignRight)
+    lbName = QLabel("Isotop :")
+    lbName.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-    # self.leName = QLineEdit()
-    # self.leName.setText("12C")
+    self.leName = QLineEdit()
+    self.leName.setText("12C")
 
-    # lbMaxEx = QLabel("Max Ex [MeV]:")
-    # lbMaxEx.setAlignment(Qt.AlignmentFlag.AlignRight)
+    lbMaxEx = QLabel("Max Ex [MeV]:")
+    lbMaxEx.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-    # self.sbMaXEx = QDoubleSpinBox()
-    # self.sbMaXEx.setMinimum(0)
-    # self.sbMaXEx.setMaximum(20)
-    # self.sbMaXEx.setDecimals(1)
-    # self.sbMaXEx.setValue(10)
+    self.sbMaXEx = QDoubleSpinBox()
+    self.sbMaXEx.setMinimum(0)
+    self.sbMaXEx.setMaximum(20)
+    self.sbMaXEx.setDecimals(1)
+    self.sbMaXEx.setValue(10)
 
-    # buEx = QPushButton("Get & Plot Ex")
-    # buEx.setFixedHeight(40)
-    # buEx.clicked.connect(self.open_Ex_window)
+    buEx = QPushButton("Get & Plot Ex")
+    buEx.setFixedHeight(40)
+    buEx.clicked.connect(self.open_Ex_window)
 
-    # Ex_layout.addWidget(lbName, 0, 0)
-    # Ex_layout.addWidget(self.leName, 0, 1)
-    # Ex_layout.addWidget(lbMaxEx, 1, 0)
-    # Ex_layout.addWidget(self.sbMaXEx, 1, 1)
-    # Ex_layout.addWidget(buEx, 2, 0, 1, 2)
+    Ex_layout.addWidget(lbName, 0, 0)
+    Ex_layout.addWidget(self.leName, 0, 1)
+    Ex_layout.addWidget(lbMaxEx, 1, 0)
+    Ex_layout.addWidget(self.sbMaXEx, 1, 1)
+    Ex_layout.addWidget(buEx, 2, 0, 1, 2)
 
     # Set up the Right Side
 
@@ -158,9 +159,9 @@ class MyWindow(QMainWindow):
 
     # Set up the layout
     layout = QGridLayout()
-    layout.addWidget(self.gbDWBA, 0, 0, 7, 1)
-    # layout.addWidget(self.gbDWBA, 0, 0, 5, 1)
-    # layout.addWidget(self.gbEx, 5, 0, 2, 1)
+    # layout.addWidget(self.gbDWBA, 0, 0, 7, 1)
+    layout.addWidget(self.gbDWBA, 0, 0, 5, 1)
+    layout.addWidget(self.gbEx, 5, 0, 2, 1)
 
     layout.addWidget(self.bnOpenDWBASource, 0, 1)
     layout.addWidget(self.leFileName, 0, 2, 1, 3)
@@ -256,33 +257,30 @@ class MyWindow(QMainWindow):
     if self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
       self.open_plot_window()
 
+  # def open_plot_window(self):
+  #   if self.plot_window is None :
+  #     self.plot_window = PlotWindow(self.DWBAFileName + ".Xsec.txt") 
+  #     self.plot_window.show()
+  #     # self.plot_window.setAttribute(Qt.WA_DeleteOnClose)  # Optional: Automatically delete when closed
+  #   else:
+  #     self.plot_window.read_data(self.DWBAFileName + ".Xsec.txt") 
+  #     self.plot_window.plot_plotly_graph()
+  #     self.plot_window.show()
+
   def open_plot_window(self):
-    if self.plot_window is None :
-      self.plot_window = PlotWindow(self.DWBAFileName + ".Xsec.txt") 
-      self.plot_window.show()
-      # self.plot_window.setAttribute(Qt.WA_DeleteOnClose)  # Optional: Automatically delete when closed
-    else:
-      self.plot_window.read_data(self.DWBAFileName + ".Xsec.txt") 
-      self.plot_window.plot_plotly_graph()
-      self.plot_window.show()
+    self.plot_window.read_data(self.DWBAFileName + ".Xsec.txt") 
+    self.plot_window.plot_matplotlib_graph()
+    self.plot_window.show()
 
-  # def open_Ex_window(self):
-  #   if self.plot_window:
-  #     self.plot_window.close()
-  #     self.plot_window.__del__()
-
-  #   if self.Ex_window is None :
-  #     self.Ex_window = ExWindow()
-  
-  #   self.Ex_window.GetEx(self.leName.text(), self.sbMaXEx.value())
-  #   self.Ex_window.plot_Ex_graph()
-  #   self.Ex_window.show()
+  def open_Ex_window(self):
+    self.Ex_window.GetEx(self.leName.text(), self.sbMaXEx.value())
+    self.Ex_window.plot_Ex_graph()
+    self.Ex_window.show()
 
 
   def closeEvent(self, event):
     if self.plot_window:
       self.plot_window.close()  # Close the PlotWindow when MainWindow closes
-      self.plot_window.__del__()
     if self.Ex_window:
       self.Ex_window.close()  # Close the PlotWindow when MainWindow closes
       self.Ex_window.__del__()
