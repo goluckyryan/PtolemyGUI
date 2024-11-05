@@ -27,16 +27,17 @@ class MatPlotLibWindow(QWidget):
     self.canvas = FigureCanvas(self.figure)
     self.toolbar = NavigationToolbar(self.canvas, self)
 
+    self.showMarker_checkBox = QCheckBox("Show Markers")
+    self.showMarker_checkBox.stateChanged.connect(self.plot_matplotlib_graph)
+
     self.log_scale_checkbox = QCheckBox("Use Log Scale for Y-Axis")
     self.log_scale_checkbox.setChecked(True)
     self.log_scale_checkbox.stateChanged.connect(self.plot_matplotlib_graph)
 
     self.gridline_checkbox = QCheckBox("Show Gridlines")
+    self.gridline_checkbox.setChecked(True)
     self.gridline_checkbox.stateChanged.connect(self.plot_matplotlib_graph)
 
-    self.showMarker_checkBox = QCheckBox("Show Markers")
-    self.showMarker_checkBox.setChecked(True)
-    self.showMarker_checkBox.stateChanged.connect(self.plot_matplotlib_graph)
 
     layout = QGridLayout(self)
     layout.addWidget(self.toolbar, 0, 0, 1, 3)
