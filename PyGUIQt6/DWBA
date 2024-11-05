@@ -31,6 +31,8 @@
 # s = Su and Han, 2015               |         E < 398 | 20 < A < 209             | http://dx.doi/org/10.1142/S0218301315500925
 # a = Avrigeanu et al., 2009         |         E ???   |      A  ???              | http://dx.doi/org/10.1016/j.adt.2009.02.001
 # f = Bassani and Picard, 1969(FIXED)|    24 < E < 31  |      A = 90              | https://doi.org/10.1016/0375-9474(69)90601-0
+#========================= 6Li
+# 6 = a fixed 6Li potential, only valid for (6Li,d)
 #=======================================================================
 #reaction          gs-spin  orbital  spin-pi(Ex)  Ex      ELab        Potentials
 #206Hg(d,d)206Hg   0        none     9/2+         0.000   7.39MeV/u   AA                #elastic
@@ -42,5 +44,4 @@
 #32Si(t,p)34Si     0        0L=0     0+           0.000   8MeV/u      lA                #two-nucleon_transfer
 #133Sb(t,3He)133Sn 7/2      0g7/2    0+           0.000   8.5MeV/u    Ax .... cannot cal
 
-11C(d,p)12C       3/2-    0p1/2   2+   4.4   10MeV/u AK
-11C(d,p)12C       3/2-    0p1/2   1+  15.1   10MeV/u AK
+12C(6Li,d)16O       0+    nL=2   2+   0.0   10MeV/u 6K

@@ -63,6 +63,9 @@ class MyWindow(QMainWindow):
     self.bnOpenXsecFile = QPushButton("Open X-sec File")
     self.bnOpenXsecFile.clicked.connect(lambda: self.LoadFileToTextBox(self.DWBAFileName + ".Xsec.txt"))
 
+    self.bnDeleteFiles = QPushButton("Delete in/out/Xsec files")
+    self.bnDeleteFiles.clicked.connect(self.DeleteinOutXsecFiles)
+
     lbAngMin = QLabel("angMin :")
     lbAngMin.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
     lbAngMax = QLabel("angMax :")
@@ -107,22 +110,23 @@ class MyWindow(QMainWindow):
     group_layout.addWidget(self.bnOpenInFile, 1, 0, 1, 2)
     group_layout.addWidget(self.bnOpenOutFile, 2, 0, 1, 2)
     group_layout.addWidget(self.bnOpenXsecFile, 3, 0, 1, 2)
+    group_layout.addWidget(self.bnDeleteFiles, 4, 0, 1, 2)
 
-    group_layout.addWidget(lbAngMin, 4, 0)
-    group_layout.addWidget(self.sbAngMin, 4, 1)
-    group_layout.addWidget(lbAngMax, 5, 0)
-    group_layout.addWidget(self.sbAngMax, 5, 1)
-    group_layout.addWidget(lbAngSize, 6, 0)
-    group_layout.addWidget(self.sbAngSize, 6, 1)
+    group_layout.addWidget(lbAngMin, 5, 0)
+    group_layout.addWidget(self.sbAngMin, 5, 1)
+    group_layout.addWidget(lbAngMax, 6, 0)
+    group_layout.addWidget(self.sbAngMax, 6, 1)
+    group_layout.addWidget(lbAngSize, 7, 0)
+    group_layout.addWidget(self.sbAngSize, 7, 1)
 
-    group_layout.addWidget(self.chkCreateInFile, 7, 0, 1, 2)
-    group_layout.addWidget(self.chkRunPtolemy, 8, 0, 1, 2)
-    group_layout.addWidget(self.chkExtracrXsec, 9, 0, 1, 2)
+    group_layout.addWidget(self.chkCreateInFile, 8, 0, 1, 2)
+    group_layout.addWidget(self.chkRunPtolemy, 9, 0, 1, 2)
+    group_layout.addWidget(self.chkExtracrXsec, 10, 0, 1, 2)
 
-    group_layout.addWidget(self.cbXsec, 10, 0, 1, 2)
-    group_layout.addWidget(self.chkPlot, 11, 0, 1, 2)
+    group_layout.addWidget(self.cbXsec, 11, 0, 1, 2)
+    group_layout.addWidget(self.chkPlot, 12, 0, 1, 2)
 
-    group_layout.addWidget(self.bnCalDWBA, 12, 0, 1, 2)
+    group_layout.addWidget(self.bnCalDWBA, 13, 0, 1, 2)
 
     # Ex Group
     self.gbEx = QGroupBox("Ex")
@@ -230,6 +234,15 @@ class MyWindow(QMainWindow):
       file.write(self.text_edit.toPlainText())
       self.leStatus.setText(f"File saved to: {file_path}")
 
+  def DeleteinOutXsecFiles(self):
+    if os.path.exists(self.DWBAFileName + ".in"):
+      os.remove(self.DWBAFileName + ".in")
+    if os.path.exists(self.DWBAFileName + ".out"):
+      os.remove(self.DWBAFileName + ".out")
+    if os.path.exists(self.DWBAFileName + ".Xsec.txt"):
+      os.remove(self.DWBAFileName + ".Xsec.txt")
+    self.leStatus.setText("Deleted " + self.DWBAFileName + ".in/.out/.Xsec.txt files")
+
   def BashCommand(self, cmd):
     print("Bash Command : |" + cmd + "|")
     self.bashResult = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -276,7 +289,7 @@ class MyWindow(QMainWindow):
     if isRunOK and self.chkExtracrXsec.isChecked() and self.file_exists(self.DWBAFileName + ".out") :
       extract_xsec(self.DWBAFileName + ".out", self.cbXsec.currentIndex())
 
-    if self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
+    if isRunOK and self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
       self.open_plot_window()
 
   def open_plot_window(self):

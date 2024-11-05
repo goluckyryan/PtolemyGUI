@@ -25,7 +25,7 @@ void PrintPotential(){
 }
 
 /// A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
-/// 1 1 1 1 0 0 1 1 0 0 1 1 1 0 0 1 1 0 0 0 0 1 0 1 1 1
+/// 1 1 1 1 0 0 1 1 0 0 1 1 1 0 0 1 1 0 0 0 0 1 0 1 1 1 // 1 = used
 string potentialRef(string name){
   
   //======== Deuteron 
@@ -107,6 +107,11 @@ string potentialRef(string name){
   if( name == "f"){
     return "(FIXED) Bassani and Picard, (1969) 24 < E < 31 | A = 90 | https://doi.org/10.1016/0375-9474(69)90601-0";
   }
+
+  //======= 6Li
+  if( name == "6"){
+    return "Fixed 6Li potential";
+  }
   
   //====== custom
   if( name == "Y"){
@@ -168,6 +173,22 @@ bool CustomYPotential(int A, int Z, double E){
 
   return true;
 }
+
+//======================== 6Li
+bool SixLithium(){
+  v = 101.2;
+  r0 = 1.24;
+  a = 0.817;
+
+  vi = 12.64;
+  ri0 = 1.57;
+  ai = 0.690;
+
+  rc0 = 1.3;
+
+  return true;
+}
+
 //======================== deuteron 
 bool AnCaiPotential(int A, int Z, double E){
   // d + A(Z)
@@ -1065,6 +1086,8 @@ bool CallPotential(string potName, int A, int Z, double E, int Zproj){
 
   if( potName == "X") okFlag = CustomXPotential(A, Z, E);  
   if( potName == "Y") okFlag = CustomYPotential(A, Z, E);
+
+  if( potName == "6") okFlag = SixLithium();
   
   //printf(" Potenital : %s | A : %d | Z : %d | E : %f\n", potName.c_str(), A, Z, E);
   //PrintPotential();

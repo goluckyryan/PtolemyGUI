@@ -103,8 +103,8 @@ int InFileCreator(string readFile, string infile, double angMin, double angMax, 
     bool isReactionSupported = false;
     bool isTransferReaction = true;
     
-    if( iso_a.A <= 4 && iso_a.Z <= 2 && iso_b.A <=4 && iso_b.Z <=2 ) isReactionSupported = true;     
-    
+    if( iso_a.A <= 4 && iso_a.Z <= 2 && iso_b.A <= 4 && iso_b.Z <=2 ) isReactionSupported = true;
+
     ///======= elastics-ish scattering
     if( iso_a.Mass == iso_b.Mass ) isTransferReaction = false;
     
@@ -114,7 +114,10 @@ int InFileCreator(string readFile, string infile, double angMin, double angMax, 
     ///======= 3-nucleons transfer is not supported. e.g. (n,a), (p,a), (a,n), (a,p)
     int numNucleonsTransfer = iso_a.A - iso_b.A;
     if( abs(numNucleonsTransfer) >= 3 ) isReactionSupported = false;
-    
+
+    ///======= (6Li,d) reaction
+    if( iso_a.A == 6 && iso_a.Z == 3 && iso_b.A == 2 && iso_b.Z == 1 ) isReactionSupported = true; 
+
     if( isReactionSupported == false ){
       printf("  ===> Ignored. Reaction type not supported. \n"); 
       continue;
@@ -176,11 +179,16 @@ int InFileCreator(string readFile, string infile, double angMin, double angMax, 
         spdf = GetLValue(lValue);
       }
       
-      // two-nucleons transfer
-      if( abs(iso_a.A - iso_b.A) == 2 ){
+      // two-nucleons transfer, v vc 
+      if( abs(iso_a.A - iso_b.A) == 2 ||  abs(iso_a.A - iso_b.A) == 4 ){
         size_t posEq = orbital.find('=');
         lValue = orbital.substr(posEq+1,1);
         spdf=atoi(lValue.c_str());
+      }
+
+      // (6Li,d)
+      if( abs(iso_a.A - iso_b.A) == 4 ){
+
       }
       
       if( abs(iso_a.A - iso_b.A) == 0 ){
@@ -320,10 +328,14 @@ int InFileCreator(string readFile, string infile, double angMin, double angMax, 
         fprintf(file_out, "PARAMETERSET alpha3 r0target\n");
         fprintf(file_out, "lstep=1 lmin=0 lmax=30 maxlextrap=0 ASYMPTOPIA=40\n");
         fprintf(file_out, "\n");
-        fprintf(file_out, "PROJECTILE\n");
-        fprintf(file_out, "wavefunction phiffer\n");
-        fprintf(file_out, "L = 0  NODES=0 R0 = 1.25  A = .65     RC0 = 1.25\n");
+        fprintf(file_out, "PROJECTILE nodes=0 l=0 r0=1.25 a=0.65 rc0=1.25\n");
       } 
+
+      if( iso_a.A == 6 && iso_a.Z == 3 && iso_b.A == 2 && iso_b.Z == 1 ){
+        fprintf(file_out, "PARAMETERSET alpha3 r0target maxlextrap=0 asymptopia=100\n");
+        fprintf(file_out, "PROJECTILE nodes=0 l=0 r0=1.25 a=0.65 rc0=1.25\n");
+      }
+
       fprintf(file_out, ";\n");
       
       //===== TARGET
@@ -359,9 +371,13 @@ int InFileCreator(string readFile, string infile, double angMin, double angMax, 
         }
       }
       
+      if( iso_a.A == 6 && iso_a.Z == 3 && iso_b.A == 2 && iso_b.Z == 1 ){
+        fprintf(file_out, "nodes=4 l=%d \n", spdf);
+      }
+
       fprintf(file_out, ";\n");
       
-      //===== POTENTIAL
+      //===== POTENTIAL      
       string pot1Name = potential.substr(0,1);
       string pot1Ref = potentialRef(pot1Name);
       fprintf(file_out, "INCOMING $%s\n", pot1Ref.c_str());
