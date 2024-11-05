@@ -104,7 +104,7 @@ class IsotopeClass:
   def GetSymbol(self, A : int, Z : int) -> str:
     try:
       dudu = self.data[(self.data['z']==Z) & (self.data['A']==A)]
-      return "%d%s" % (A , dudu['symbol'].iloc[0])
+      return "%s" % (dudu['symbol'].iloc[0])
     except:
       return "0x"
 

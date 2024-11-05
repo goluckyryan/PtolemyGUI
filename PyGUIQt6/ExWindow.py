@@ -37,6 +37,10 @@ class ExWindow(QWidget):
     self.maxEx = maxEx
     self.data = self.Iso.GetExList(ASym, maxEx)    
 
+    self.Iso.PrintIso(ASym)
+    print(self.data)
+    print("=============================")
+
   def plot_Ex_graph(self):
 
     if self.html_file and os.path.exists(self.html_file):
@@ -48,15 +52,22 @@ class ExWindow(QWidget):
     plotWidth = 350
     yMin = -1
     
-    # Create a Plotly figure
-    fig = go.Figure()
+    A, Z = self.Iso.GetAZ(self.ASym)
+    Sym = self.Iso.GetSymbol(A, Z)
+
+    Sn = self.Iso.GetSn(self.ASym)
+    Sp = self.Iso.GetSp(self.ASym)
+    Sa = self.Iso.GetSa(self.ASym)
 
     ex=self.data['energy']/1000.
     jp=self.data['jp']
+    
+    # Create a Plotly figure
     fig = go.Figure()
+
     fig.update_layout(plot_bgcolor='white', width=plotWidth, height = plotHeight, margin=dict(l=0, r=0, t=0, b=0))
     fig.update_layout(showlegend=False)
-    fig.update_xaxes(showline=False,  visible= False, range=[-1, 3])
+    fig.update_xaxes(showline=False,  visible= False, range=[-1, 2.5])
     fig.update_yaxes(showline=True,  visible= True, range=[yMin, self.maxEx+1])
 
     l=ex.last_valid_index()
@@ -100,7 +111,18 @@ class ExWindow(QWidget):
       fig.add_trace(go.Scatter(x=[1.03 + xShift,1.1 + xShift, 1.19 + xShift], y=[ex[i],ypos[i],ypos[i]],mode='lines',line=dict(color='gray', width=1)))
       fig.add_annotation(x=1.2 + xShift, y=ypos[i], text=("%.3f, %s" % (ex[i], jp[i])), xanchor='left', font=dict(size=fontSize), showarrow=False)
 
-    fig.add_annotation(x=0.5 + xShift, y=-0.5, text=self.ASym, font=dict(size=1.5*fontSize), showarrow=False)
+    if( Sn < self.maxEx ):
+      fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sn,Sn],mode='lines',line=dict(color='red', width=1)))
+      fig.add_annotation(x=-0.6 + xShift, y=Sn, text=("Sn %.3f" % Sn), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='red'), showarrow=False)
+    if( Sp < self.maxEx ):
+      fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sp,Sp],mode='lines',line=dict(color='blue', width=1)))
+      fig.add_annotation(x=-0.6 + xShift, y=Sp, text=("Sp %.3f" % Sp), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='blue'), showarrow=False)
+    if( Sa < self.maxEx ):
+      fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sa,Sa],mode='lines',line=dict(color='#9467bd', width=1)))
+      fig.add_annotation(x=-0.6 + xShift, y=Sa, text=("Sa %.3f" % Sa), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='#9467bd'), showarrow=False)
+
+
+    fig.add_annotation(x=0.5 + xShift, y=-0.6, text=("<sup>%s</sup>%s" % (A, Sym)), font=dict(size=2.5*fontSize), showarrow=False)
 
     # Save the plot as an HTML file in a temporary location
     timestamp = int(time.time() * 1000)  # Unique timestamp in milliseconds

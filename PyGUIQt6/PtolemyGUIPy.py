@@ -286,8 +286,9 @@ class MyWindow(QMainWindow):
 
   def open_Ex_window(self):
     self.Ex_window.GetEx(self.leName.text(), self.sbMaXEx.value())
-    self.Ex_window.plot_Ex_graph()
-    self.Ex_window.show()
+    if self.sbMaXEx.value() > 0 :
+      self.Ex_window.plot_Ex_graph()
+      self.Ex_window.show()
 
 
   def closeEvent(self, event):
