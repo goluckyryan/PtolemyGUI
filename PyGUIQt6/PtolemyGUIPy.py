@@ -4,6 +4,7 @@ import os
 import platform
 import subprocess
 import sys
+import time
 from functools import partial
 from PyQt6.QtWidgets import (
   QApplication, QMainWindow, QGridLayout, QPushButton, 
@@ -41,6 +42,7 @@ class PlotWindow(QWidget):
     self.showMarker_checkBox = QCheckBox("Show Markers")
     self.showMarker_checkBox.stateChanged.connect(self.plot_plotly_graph)
 
+    self.html_file = None
     self.web_view = QWebEngineView()
 
     layout = QGridLayout(self)
@@ -83,6 +85,10 @@ class PlotWindow(QWidget):
       # print(self.headers)
 
   def plot_plotly_graph(self):
+
+    if self.html_file and os.path.exists(self.html_file):
+      os.remove(self.html_file)
+    
     # Create a Plotly figure
     fig = go.Figure()
 
@@ -145,12 +151,15 @@ class PlotWindow(QWidget):
     )
 
     # Save the plot as an HTML file in a temporary location
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
-      fig.write_html(tmp_file.name)
-      html_file = tmp_file.name
-
-    # Load the HTML file in QWebEngineView
+    timestamp = int(time.time() * 1000)  # Unique timestamp in milliseconds
+    html_file = f"/tmp/plotwindow_{timestamp}.html"
+    fig.write_html(html_file)
+    self.html_file = html_file  # Store for cleanup
     self.web_view.setUrl(QUrl.fromLocalFile(html_file))
+
+  def __del__(self):
+    if os.path.exists(self.html_file):
+       os.remove(self.html_file)
 
 ################################################## MainWindow
 class MyWindow(QMainWindow):
@@ -314,20 +323,6 @@ class MyWindow(QMainWindow):
 
   def file_exists(self,file_path):
     return os.path.exists(file_path) and os.path.isfile(file_path)
-  
-  def A_file_changed_after_B_file(self, file_a, file_b):
-    try:
-      modified_time_a = os.path.getmtime(file_a)
-      modified_time_b = os.path.getmtime(file_b)
-
-      # Compare the modification times
-      return modified_time_a > modified_time_b
-    except FileNotFoundError as e:
-      print(f"Error: {e}")
-      return False
-    except Exception as e:
-      print(f"An error occurred: {e}")
-      return False
 
   def CalDWBA(self):
     
@@ -367,10 +362,7 @@ class MyWindow(QMainWindow):
       # self.BashCommand("../Cleopatra/ExtractXSec " + self.DWBAFileName + ".out " +  option)
 
     if self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
-      if self.A_file_changed_after_B_file(self.DWBAFileName + ".Xsec.txt", self.DWBAFileName + ".out") :
-        self.open_plot_window()
-      else:
-        self.leStatus.setText( self.DWBAFileName + ".Xsec.txt is not newer than " + self.DWBAFileName + ".out")
+      self.open_plot_window()
 
   def open_plot_window(self):
     if self.plot_window is None :
@@ -385,6 +377,7 @@ class MyWindow(QMainWindow):
   def closeEvent(self, event):
     if self.plot_window:
       self.plot_window.close()  # Close the PlotWindow when MainWindow closes
+      self.plot_window.__del__()
     event.accept()  # Accept the event to proceed with closing the main window
 
 

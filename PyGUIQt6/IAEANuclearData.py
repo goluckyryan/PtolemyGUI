@@ -10,12 +10,14 @@ mp = 938.27208816 # +- 29
 mn = 939.56542052 # +- 54
 ma = 3727.37915 
 
-class Isotope:
-  def __int__(self):
-
+class IsotopeClass:
+  def __init__(self):
     self.livechart = "https://nds.iaea.org/relnsd/v0/data?"
     self.data = None
 
+    self.DownloadData()
+
+  def DownloadData(self):
     # Read the saved CSV file back into a DataFrame
     try :
       self.data = pd.read_csv('IAEA_NuclearData.csv')
@@ -163,7 +165,7 @@ class Isotope:
     print("        Sa: %9.2f MeV" % self.GetSa(ASym))
     print("=============================")
 
-  def PrintIsoWeb(self, ASym : str):
+  def PrintIsoHTML(self, ASym : str):
     [A, Z] = self.GetAZ(ASym)
     print("<br>========================= ", ASym)
     print("<br>A : %d, Z : %d, N : %d" % (A, Z, A-Z))
