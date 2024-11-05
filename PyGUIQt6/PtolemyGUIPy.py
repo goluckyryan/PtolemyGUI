@@ -10,11 +10,29 @@ from PyQt6.QtWidgets import (
   QFileDialog, QGroupBox, QVBoxLayout, QSpinBox, QDoubleSpinBox
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QTextCursor, QTextCharFormat, QSyntaxHighlighter
 
 from ExtractXsecPy import extract_xsec
 from ExWindow import ExWindow
 from MatPlotLibWindow import MatPlotLibWindow
+
+class PythonHighlighter(QSyntaxHighlighter):
+  def __init__(self, document):
+    super().__init__(document)
+
+    # Define formatting for comments
+    self.comment_format = QTextCharFormat()
+    self.comment_format.setForeground(Qt.GlobalColor.darkGreen)
+
+
+  def highlightBlock(self, text):
+    # Highlight comments
+    if text.startswith("#"):
+      self.setFormat(0, len(text), self.comment_format)
+    if text.startswith("$"):
+      self.setFormat(0, len(text), self.comment_format)
+    if text.startswith("0"):
+      self.setFormat(0, len(text), self.comment_format)
 
 ################################################## MainWindow
 class MyWindow(QMainWindow):
@@ -37,7 +55,7 @@ class MyWindow(QMainWindow):
     self.gbDWBA.setLayout(group_layout)
 
     self.bnOpenDWBA = QPushButton("Open DWBA")
-    self.bnOpenDWBA.clicked.connect(lambda: self.LoadFileToTextBox(self.DWBAFileName))
+    self.bnOpenDWBA.clicked.connect(lambda: self.LoadFileToTextBox(self.DWBAFileName, True))
     self.bnOpenInFile = QPushButton("Open *.in File")
     self.bnOpenInFile.clicked.connect(lambda: self.LoadFileToTextBox(self.DWBAFileName + ".in"))
     self.bnOpenOutFile = QPushButton("Open *.out File")
@@ -45,9 +63,12 @@ class MyWindow(QMainWindow):
     self.bnOpenXsecFile = QPushButton("Open X-sec File")
     self.bnOpenXsecFile.clicked.connect(lambda: self.LoadFileToTextBox(self.DWBAFileName + ".Xsec.txt"))
 
-    lbAngMin = QLabel("angMin")
-    lbAngMax = QLabel("angMax")
-    lbAngSize = QLabel("angSize")
+    lbAngMin = QLabel("angMin :")
+    lbAngMin.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
+    lbAngMax = QLabel("angMax :")
+    lbAngMax.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
+    lbAngSize = QLabel("angSize :")
+    lbAngSize.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
     self.sbAngMin = QSpinBox()
     self.sbAngMin.setValue(0)
     self.sbAngMin.setMinimum(0)
@@ -110,13 +131,13 @@ class MyWindow(QMainWindow):
     self.gbEx.setLayout(Ex_layout)
 
     lbName = QLabel("Isotop :")
-    lbName.setAlignment(Qt.AlignmentFlag.AlignRight)
+    lbName.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
 
     self.leName = QLineEdit()
     self.leName.setText("12C")
 
     lbMaxEx = QLabel("Max Ex [MeV]:")
-    lbMaxEx.setAlignment(Qt.AlignmentFlag.AlignRight)
+    lbMaxEx.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
 
     self.sbMaXEx = QDoubleSpinBox()
     self.sbMaXEx.setMinimum(0)
@@ -124,7 +145,7 @@ class MyWindow(QMainWindow):
     self.sbMaXEx.setDecimals(1)
     self.sbMaXEx.setValue(10)
 
-    buEx = QPushButton("Get & Plot Ex")
+    buEx = QPushButton("Get And Plot Ex")
     buEx.setFixedHeight(40)
     buEx.clicked.connect(self.open_Ex_window)
 
@@ -151,10 +172,12 @@ class MyWindow(QMainWindow):
     font = QFont("Courier New", 10)  # You can adjust the size as needed
     self.text_edit.setFont(font)
 
+    self.highlighter = PythonHighlighter(self.text_edit.document())
+
     self.leStatus = QLineEdit("")
     self.leStatus.setReadOnly(True)
 
-    self.LoadFileToTextBox(self.DWBAFileName)
+    self.LoadFileToTextBox(self.DWBAFileName, True)
 
     # Set up the layout
     layout = QGridLayout()
@@ -168,9 +191,9 @@ class MyWindow(QMainWindow):
     layout.addWidget(self.text_edit, 1, 1, 5, 5)
     layout.addWidget(self.leStatus, 6, 1, 1, 5)
 
-    layout.setColumnStretch(0, 1)
-    layout.setColumnStretch(1, 3)
-
+    for i in range(layout.columnCount()) :
+      layout.setColumnStretch(i, 1)
+  
     # Set up the container and layout
     container = QWidget()
     container.setLayout(layout)
@@ -187,12 +210,14 @@ class MyWindow(QMainWindow):
       self.leFileName.setText(self.DWBAFileName)
       self.LoadFileToTextBox(self.DWBAFileName)
 
-  def LoadFileToTextBox(self, fileName):
+  def LoadFileToTextBox(self, fileName, moveToButton = False):
     # print(fileName)
     try:
       with open(fileName, 'r') as file:
         content = file.read()
         self.text_edit.setText(content)
+        if moveToButton :
+          self.text_edit.moveCursor(QTextCursor.MoveOperation.End)
         self.leStatus.setText(f"Loaded file : {fileName}")
         self.leFileName.setText(fileName)
     except Exception as e:
@@ -271,7 +296,7 @@ class MyWindow(QMainWindow):
     if self.Ex_window:
       self.Ex_window.close()  # Close the PlotWindow when MainWindow closes
       self.Ex_window.__del__()
-
+    print("============== Bye Bye ========== ")
     event.accept()  # Accept the event to proceed with closing the main window
 
 
