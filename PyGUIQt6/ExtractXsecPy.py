@@ -188,15 +188,6 @@ def extract_xsec(read_file, index_for_elastic):
       print(f"{reaction[i]:>{reaction_str_len + 3}} | {title[i][pos + 1:]} | Xsec({angle_min:3.0f}-{angle_max:3.0f} deg) : {partial_sum_xsec:.6f} mb")
     print("---------------------------------------------------")
 
-    # ================================== save *.Ex.txt
-    save_ex_name = f"{read_file[:-4]}.Ex.txt"
-    print("Output : ", save_ex_name)
-    with open(save_ex_name, 'w') as file_ex:
-      file_ex.write("//generated_by_ExtractXSec.h____Ex____Xsec(4pi)____SF____sigma\n")
-      for i in range(num_cal):
-        file_ex.write(f"{Ex[i]:9.5f}     {partial_xsec[i]:9.5f}  1.0  0.000\n")
-      file_ex.write("#=====End_of_File\n")
-
     # ================================== save file.Xsec.txt
     save_file_name = f"{read_file[:-4]}.Xsec.txt"
     print("Output : ", save_file_name)
