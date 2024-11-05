@@ -13,7 +13,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from ExtractXsecPy import extract_xsec
-from PlotWindow import PlotWindow
 from ExWindow import ExWindow
 from MatPlotLibWindow import MatPlotLibWindow
 
@@ -251,21 +250,9 @@ class MyWindow(QMainWindow):
 
     if isRunOK and self.chkExtracrXsec.isChecked() and self.file_exists(self.DWBAFileName + ".out") :
       extract_xsec(self.DWBAFileName + ".out", self.cbXsec.currentIndex())
-      # option = str(self.cbXsec.currentIndex())
-      # self.BashCommand("../Cleopatra/ExtractXSec " + self.DWBAFileName + ".out " +  option)
 
     if self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
       self.open_plot_window()
-
-  # def open_plot_window(self):
-  #   if self.plot_window is None :
-  #     self.plot_window = PlotWindow(self.DWBAFileName + ".Xsec.txt") 
-  #     self.plot_window.show()
-  #     # self.plot_window.setAttribute(Qt.WA_DeleteOnClose)  # Optional: Automatically delete when closed
-  #   else:
-  #     self.plot_window.read_data(self.DWBAFileName + ".Xsec.txt") 
-  #     self.plot_window.plot_plotly_graph()
-  #     self.plot_window.show()
 
   def open_plot_window(self):
     self.plot_window.read_data(self.DWBAFileName + ".Xsec.txt") 
