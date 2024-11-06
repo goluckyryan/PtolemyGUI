@@ -3,12 +3,14 @@
 import os
 import time
 from PyQt6.QtWidgets import (
-  QVBoxLayout, QWidget, QCheckBox
+  QVBoxLayout, QWidget, QPushButton, QFileDialog
 )
 from PyQt6.QtCore import QUrl
 
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 import plotly.graph_objects as go
+import plotly.io as pio
+
 
 from IAEANuclearData import IsotopeClass
 
@@ -24,13 +26,38 @@ class ExWindow(QWidget):
     self.data = None
     self.Iso = IsotopeClass()
 
+    self.save_button = QPushButton("Save Plot as Image")
+    self.save_button.clicked.connect(self.save_plot)
+
+    self.fig = go.Figure()
     self.html_file = None
     self.web_view = QWebEngineView()
 
     layout = QVBoxLayout(self)
+    layout.addWidget(self.save_button)
     layout.addWidget(self.web_view)
 
     # self.plot_Ex_graph()
+
+  def save_plot(self):
+    file_path, file_type = QFileDialog.getSaveFileName(self, "Save Image", "", "PNG Files (*.png);;PDF Files (*.pdf);;All Files (*)")
+    if file_path:
+
+      if "PDF" in file_type:
+        format = "pdf"
+        extension = ".pdf"
+      elif "PNG" in file_type:
+        format = "png"
+        extension = ".png"
+      else:
+        format = "png"
+        extension = ".png"
+
+      if not file_path.lower().endswith(extension):
+        file_path += extension
+
+      pio.write_image(self.fig, file_path, format=format)
+      print(f"Plot saved to {file_path} as {format.upper()}")
 
   def GetEx(self, ASym :str, maxEx :float):
     self.ASym = ASym
@@ -63,12 +90,12 @@ class ExWindow(QWidget):
     jp=self.data['jp']
     
     # Create a Plotly figure
-    fig = go.Figure()
+    self.fig.data = []
 
-    fig.update_layout(plot_bgcolor='white', width=plotWidth, height = plotHeight, margin=dict(l=0, r=0, t=0, b=0))
-    fig.update_layout(showlegend=False)
-    fig.update_xaxes(showline=False,  visible= False, range=[-1, 2.5])
-    fig.update_yaxes(showline=True,  visible= True, range=[yMin, self.maxEx+1])
+    self.fig.update_layout(plot_bgcolor='white', width=plotWidth, height = plotHeight, margin=dict(l=0, r=0, t=0, b=0))
+    self.fig.update_layout(showlegend=False)
+    self.fig.update_xaxes(showline=False,  visible= False, range=[-1, 2.5])
+    self.fig.update_yaxes(showline=False,  visible= False, range=[yMin, self.maxEx+1])
 
     l=ex.last_valid_index()
 
@@ -107,27 +134,27 @@ class ExWindow(QWidget):
       loop += 1
 
     for i in range(0,l+1):
-      fig.add_trace(go.Scatter(x=[xShift,1 + xShift], y=[ex[i],ex[i]],mode='lines',line=dict(color='black', width=1)))
-      fig.add_trace(go.Scatter(x=[1.03 + xShift,1.1 + xShift, 1.19 + xShift], y=[ex[i],ypos[i],ypos[i]],mode='lines',line=dict(color='gray', width=1)))
-      fig.add_annotation(x=1.2 + xShift, y=ypos[i], text=("%.3f, %s" % (ex[i], jp[i])), xanchor='left', font=dict(size=fontSize), showarrow=False)
+      self.fig.add_trace(go.Scatter(x=[xShift,1 + xShift], y=[ex[i],ex[i]],mode='lines',line=dict(color='black', width=1)))
+      self.fig.add_trace(go.Scatter(x=[1.03 + xShift,1.1 + xShift, 1.19 + xShift], y=[ex[i],ypos[i],ypos[i]],mode='lines',line=dict(color='gray', width=1)))
+      self.fig.add_annotation(x=1.2 + xShift, y=ypos[i], text=("%.3f, %s" % (ex[i], jp[i])), xanchor='left', font=dict(size=fontSize), showarrow=False)
 
     if( Sn < self.maxEx ):
-      fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sn,Sn],mode='lines',line=dict(color='red', width=1)))
-      fig.add_annotation(x=-0.6 + xShift, y=Sn, text=("Sn %.3f" % Sn), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='red'), showarrow=False)
+      self.fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sn,Sn],mode='lines',line=dict(color='red', width=1)))
+      self.fig.add_annotation(x=-0.6 + xShift, y=Sn, text=("Sn %.3f" % Sn), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='red'), showarrow=False)
     if( Sp < self.maxEx ):
-      fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sp,Sp],mode='lines',line=dict(color='blue', width=1)))
-      fig.add_annotation(x=-0.6 + xShift, y=Sp, text=("Sp %.3f" % Sp), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='blue'), showarrow=False)
+      self.fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sp,Sp],mode='lines',line=dict(color='blue', width=1)))
+      self.fig.add_annotation(x=-0.6 + xShift, y=Sp, text=("Sp %.3f" % Sp), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='blue'), showarrow=False)
     if( Sa < self.maxEx ):
-      fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sa,Sa],mode='lines',line=dict(color='#9467bd', width=1)))
-      fig.add_annotation(x=-0.6 + xShift, y=Sa, text=("Sa %.3f" % Sa), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='#9467bd'), showarrow=False)
+      self.fig.add_trace(go.Scatter(x=[-0.6 + xShift,-0.1 + xShift], y=[Sa,Sa],mode='lines',line=dict(color='#9467bd', width=1)))
+      self.fig.add_annotation(x=-0.6 + xShift, y=Sa, text=("Sa %.3f" % Sa), xanchor='left', yanchor='bottom', font=dict(size=fontSize, color='#9467bd'), showarrow=False)
 
 
-    fig.add_annotation(x=0.5 + xShift, y=-0.6, text=("<sup>%s</sup>%s" % (A, Sym)), font=dict(size=2.5*fontSize), showarrow=False)
+    self.fig.add_annotation(x=0.5 + xShift, y=-0.6, text=("<sup>%s</sup>%s" % (A, Sym)), font=dict(size=2.5*fontSize), showarrow=False)
 
     # Save the plot as an HTML file in a temporary location
     timestamp = int(time.time() * 1000)  # Unique timestamp in milliseconds
     html_file = f"/tmp/Exwindow_{timestamp}.html"
-    fig.write_html(html_file)
+    self.fig.write_html(html_file)
     self.html_file = html_file  # Store for cleanup
     self.web_view.setUrl(QUrl.fromLocalFile(html_file))
 
