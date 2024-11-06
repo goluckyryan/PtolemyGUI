@@ -1,5 +1,8 @@
 {
   "files.associations": {
     "InFileCreator.C": "cpp"
-  }
+  },
+  "python.analysis.extraPaths": [
+    "./Cleopatra"
+  ]
 }

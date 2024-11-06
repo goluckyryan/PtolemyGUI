@@ -10,10 +10,10 @@ from PyQt6.QtWidgets import (
   QFileDialog, QGroupBox, QVBoxLayout, QSpinBox, QDoubleSpinBox
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextCursor
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
 
 from CustomTextEdit import CustomTextEdit
-
 from ExtractXsecPy import extract_xsec
 from ExWindow import ExWindow
 from MatPlotLibWindow import MatPlotLibWindow
