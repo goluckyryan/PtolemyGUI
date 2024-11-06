@@ -7,7 +7,8 @@ from PyQt6.QtWidgets import (
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib import get_backend
+
+from ExtractXsecPy import read_DWBA
 
 # Set backend to a Qt-compatible one
 plt.switch_backend('QtAgg')  # Or use 'Qt5Agg' if there are still issues
@@ -47,35 +48,7 @@ class MatPlotLibWindow(QWidget):
     layout.addWidget(self.canvas, 2, 0, 5, 3)
 
   def read_data(self,file_path):
-    self.x = []  # List for the first column
-    self.data = [] # 2D list for other columns
-    self.headers = []  # List to store headers
-
-    with open(file_path, 'r') as file:
-      header_found = False  # Flag to indicate if the header has been found
-      for line in file:
-        # Skip lines that start with '#' and empty lines
-        if line.startswith('#') or not line.strip():
-          continue
-        
-        if not header_found:
-          self.headers = line.split()  # Use the split parts as headers
-          header_found = True  # Set the flag to True to skip this block in future iterations
-          # print(f"ELab parts found: {elab_parts}")  # Print or process this as needed
-          continue
-        
-        # Split the line by whitespace
-        parts = line.split()
-        if len(parts) > 0:  # Make sure there is at least one column
-          self.x.append(float(parts[0]))  # First column
-          # Append the rest of the columns to data
-          if len(self.data) == 0:
-            # Initialize the data array with the right number of sublists
-            self.data = [[] for _ in range(len(parts) - 1)]
-          for i in range(len(parts) - 1):
-            self.data[i].append(float(parts[i + 1]))  # Rest of the columns
-            
-      # print(self.headers)
+    self.headers, self.x, self.data = read_DWBA(file_path)
 
   def plot_matplotlib_graph(self):
     self.ax.clear()

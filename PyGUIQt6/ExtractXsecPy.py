@@ -2,6 +2,39 @@
 
 import numpy as np
 
+def read_DWBA(fileName):
+  dataX = []  # List for the first column
+  data = [] # 2D list for other columns
+  headers = []  # List to store headers
+
+  with open(fileName, 'r') as file:
+    header_found = False  # Flag to indicate if the header has been found
+    for line in file:
+      # Skip lines that start with '#' and empty lines
+      if line.startswith('#') or not line.strip():
+        continue
+      
+      if not header_found:
+        headers = line.split()  # Use the split parts as headers
+        header_found = True  # Set the flag to True to skip this block in future iterations
+        # print(f"ELab parts found: {elab_parts}")  # Print or process this as needed
+        continue
+      
+      # Split the line by whitespace
+      parts = line.split()
+      if len(parts) > 0:  # Make sure there is at least one column
+        dataX.append(float(parts[0]))  # First column
+        # Append the rest of the columns to data
+        if len(data) == 0:
+          # Initialize the data array with the right number of sublists
+          data = [[] for _ in range(len(parts) - 1)]
+        for i in range(len(parts) - 1):
+          data[i].append(float(parts[i + 1]))  # Rest of the columns
+          
+    # print(self.headers)
+  return headers, dataX, data
+
+
 def extract_xsec(read_file, index_for_elastic):
   # index_for_elastic = 1 ; for Ratio
   # index_for_elastic = 2 ; for Total

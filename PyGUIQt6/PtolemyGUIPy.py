@@ -6,33 +6,18 @@ import subprocess
 import sys
 from PyQt6.QtWidgets import (
   QApplication, QMainWindow, QGridLayout, QPushButton, 
-  QComboBox, QWidget, QLabel, QLineEdit, QTextEdit, QCheckBox,
+  QComboBox, QWidget, QLabel, QLineEdit, QCheckBox,
   QFileDialog, QGroupBox, QVBoxLayout, QSpinBox, QDoubleSpinBox
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QTextCursor, QTextCharFormat, QSyntaxHighlighter
+from PyQt6.QtGui import QTextCursor
+
+from CustomTextEdit import CustomTextEdit
 
 from ExtractXsecPy import extract_xsec
 from ExWindow import ExWindow
 from MatPlotLibWindow import MatPlotLibWindow
 
-class PythonHighlighter(QSyntaxHighlighter):
-  def __init__(self, document):
-    super().__init__(document)
-
-    # Define formatting for comments
-    self.comment_format = QTextCharFormat()
-    self.comment_format.setForeground(Qt.GlobalColor.darkGreen)
-
-
-  def highlightBlock(self, text):
-    # Highlight comments
-    if text.startswith("#"):
-      self.setFormat(0, len(text), self.comment_format)
-    if text.startswith("$"):
-      self.setFormat(0, len(text), self.comment_format)
-    if text.startswith("0"):
-      self.setFormat(0, len(text), self.comment_format)
 
 ################################################## MainWindow
 class MyWindow(QMainWindow):
@@ -43,7 +28,9 @@ class MyWindow(QMainWindow):
     self.setGeometry(100, 100, 1000, 700)
     self.setMinimumSize(400, 600)
 
-    self.DWBAFileName = "DWBA"
+    self.lastDWBARecord = "lastDWBA.txt"
+    self.DWBAFileName = ""
+    self.LoadLastOpenDWBASource()
     self.bashResult = ""
     self.plot_window = MatPlotLibWindow() 
     self.Ex_window = ExWindow()
@@ -81,7 +68,7 @@ class MyWindow(QMainWindow):
     self.sbAngMax.setMinimum(0)
     self.sbAngMax.setMaximum(180)
     self.sbAngSize = QDoubleSpinBox()
-    self.sbAngSize.setValue(1)
+    self.sbAngSize.setValue(0.2)
     self.sbAngSize.setMinimum(0.1)
     self.sbAngSize.setMaximum(10)
     self.sbAngSize.setSingleStep(0.5)
@@ -171,12 +158,7 @@ class MyWindow(QMainWindow):
     self.bnSaveFile = QPushButton("Save File")
     self.bnSaveFile.clicked.connect(self.SaveFile)
 
-    self.text_edit = QTextEdit()
-    self.text_edit.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-    font = QFont("Courier New", 10)  # You can adjust the size as needed
-    self.text_edit.setFont(font)
-
-    self.highlighter = PythonHighlighter(self.text_edit.document())
+    self.text_edit = CustomTextEdit(self)
 
     self.leStatus = QLineEdit("")
     self.leStatus.setReadOnly(True)
@@ -203,7 +185,20 @@ class MyWindow(QMainWindow):
     container.setLayout(layout)
     self.setCentralWidget(container)
 
+    self.text_edit.setFocus()
+
   ####################################### methods
+  def LoadLastOpenDWBASource(self):
+    try :
+      with open(self.lastDWBARecord, 'r') as file:
+        self.DWBAFileName = file.readline().strip()
+    except:
+      self.DWBAFileName = "DWBA"
+
+  def SaveLastOpenDWBASource(self):
+    with open(self.lastDWBARecord, 'w') as file:
+      file.write(self.DWBAFileName)
+
   def OnOffXsecOption(self):
     self.cbXsec.setEnabled(self.chkExtracrXsec.isChecked())
 
@@ -213,6 +208,7 @@ class MyWindow(QMainWindow):
       self.DWBAFileName = file_path
       self.leFileName.setText(self.DWBAFileName)
       self.LoadFileToTextBox(self.DWBAFileName)
+      self.SaveLastOpenDWBASource()
 
   def LoadFileToTextBox(self, fileName, moveToButton = False):
     # print(fileName)
@@ -221,7 +217,11 @@ class MyWindow(QMainWindow):
         content = file.read()
         self.text_edit.setText(content)
         if moveToButton :
-          self.text_edit.moveCursor(QTextCursor.MoveOperation.End)
+          cursor = self.text_edit.textCursor()
+          cursor.movePosition(cursor.MoveOperation.End)
+          cursor.movePosition(cursor.MoveOperation.StartOfBlock)
+          self.text_edit.setTextCursor(cursor)
+
         self.leStatus.setText(f"Loaded file : {fileName}")
         self.leFileName.setText(fileName)
     except Exception as e:

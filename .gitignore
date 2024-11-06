@@ -8,3 +8,5 @@ Cleopatra/PlotTGraphTObjArray
 
 __pycache__
 IAEA_NuclearData.csv
+
+*.txt
