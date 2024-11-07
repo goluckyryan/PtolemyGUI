@@ -9,17 +9,27 @@ class PythonHighlighter(QSyntaxHighlighter):
     super().__init__(document)
 
     # Define formatting for comments
-    self.comment_format = QTextCharFormat()
-    self.comment_format.setForeground(Qt.GlobalColor.darkGreen)
+    self.comment_format1 = QTextCharFormat()
+    self.comment_format1.setForeground(Qt.GlobalColor.darkGreen)
+
+    self.comment_format2 = QTextCharFormat()
+    self.comment_format2.setForeground(Qt.GlobalColor.blue)
+    self.comment_format2.setBackground(Qt.GlobalColor.yellow)
+
+    self.comment_format3 = QTextCharFormat()
+    self.comment_format3.setForeground(Qt.GlobalColor.magenta)
 
   def highlightBlock(self, text):
-    # Highlight comments
-    if text.startswith("#"):
-      self.setFormat(0, len(text), self.comment_format)
+    if text.startswith("#") and text.startswith("#=") == False:
+      self.setFormat(0, len(text), self.comment_format1)
     if text.startswith("$"):
-      self.setFormat(0, len(text), self.comment_format)
+      self.setFormat(0, len(text), self.comment_format1)
     if text.startswith("0"):
-      self.setFormat(0, len(text), self.comment_format)
+      self.setFormat(0, len(text), self.comment_format1)
+    if text.startswith("fit"):
+      self.setFormat(0, len(text), self.comment_format2)
+    if text.startswith("#="):
+      self.setFormat(0, len(text), self.comment_format3)
 
 class CustomTextEdit(QTextEdit):
   def __init__(self, parent=None):
@@ -35,9 +45,8 @@ class CustomTextEdit(QTextEdit):
     # Check if Ctrl+D is pressed
     if event.key() == Qt.Key.Key_D and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
       self.duplicate_line()
-      event.accept()  # Prevent the default behavior of Ctrl+D
     else:
-        super().keyPressEvent(event)  # Call the base class to handle other keys
+      super().keyPressEvent(event)  # Call the base class to handle other keys
 
   def duplicate_line(self):
     cursor = self.textCursor()

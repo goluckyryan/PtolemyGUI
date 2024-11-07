@@ -17,7 +17,7 @@ from CustomTextEdit import CustomTextEdit
 from ExtractXsecPy import extract_xsec
 from ExWindow import ExWindow
 from MatPlotLibWindow import MatPlotLibWindow
-
+from FitExData import Fitting
 
 ################################################## MainWindow
 class MyWindow(QMainWindow):
@@ -25,15 +25,17 @@ class MyWindow(QMainWindow):
     super().__init__()
 
     self.setWindowTitle("Ptolemy GUI")
-    self.setGeometry(100, 100, 1000, 700)
-    self.setMinimumSize(400, 600)
+    self.setGeometry(100, 100, 1000, 800)
+    self.setMinimumSize(1000, 800)
 
     self.lastDWBARecord = "lastDWBA.txt"
     self.DWBAFileName = ""
+    self.ExpDataFileName = ""
     self.LoadLastOpenDWBASource()
     self.bashResult = ""
     self.plot_window = MatPlotLibWindow() 
     self.Ex_window = ExWindow()
+    self.fitting = Fitting()
 
     # Set up Group Box for DWBA Control
     self.gbDWBA = QGroupBox("DWBA")
@@ -146,6 +148,21 @@ class MyWindow(QMainWindow):
     Ex_layout.addWidget(self.sbMaXEx, 1, 1)
     Ex_layout.addWidget(buEx, 2, 0, 1, 2)
 
+    # ExpData Group
+    self.gbExpFit = QGroupBox("Exp Data Fit")
+    fit_layout = QVBoxLayout()
+    fit_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+    self.gbExpFit.setLayout(fit_layout)
+
+    bnOpenExpData = QPushButton("Open ExpData")
+    bnOpenExpData.clicked.connect(self.LoadExpDataToTextBox)
+
+    bnFit = QPushButton("Fit")
+    bnFit.clicked.connect(self.fitData)
+
+    fit_layout.addWidget(bnOpenExpData)
+    fit_layout.addWidget(bnFit)
+
     # Set up the Right Side
 
     self.bnOpenDWBASource = QPushButton("Open DWBA Source")
@@ -158,6 +175,16 @@ class MyWindow(QMainWindow):
     self.bnSaveFile = QPushButton("Save File")
     self.bnSaveFile.clicked.connect(self.SaveFile)
 
+    self.bnOpenExpData = QPushButton("Open Exp Data")
+    self.bnOpenExpData.clicked.connect(self.OpenExpDataFile)
+
+    self.leExpDataFileName = QLineEdit("")
+    self.leExpDataFileName.setReadOnly(True)
+    self.leExpDataFileName.setText(self.ExpDataFileName)
+
+    self.bnSaveExpDataFile = QPushButton("Save Exp Data File")
+    self.bnSaveExpDataFile.clicked.connect(self.SaveExpDataFile)
+
     self.text_edit = CustomTextEdit(self)
 
     self.leStatus = QLineEdit("")
@@ -165,17 +192,25 @@ class MyWindow(QMainWindow):
 
     self.LoadFileToTextBox(self.DWBAFileName, True)
 
+    self.bnSaveExpDataFile.setEnabled(False)
+
     # Set up the layout
     layout = QGridLayout()
     # layout.addWidget(self.gbDWBA, 0, 0, 7, 1)
     layout.addWidget(self.gbDWBA, 0, 0, 5, 1)
     layout.addWidget(self.gbEx, 5, 0, 2, 1)
+    layout.addWidget(self.gbExpFit, 7, 0, 2, 1)
 
     layout.addWidget(self.bnOpenDWBASource, 0, 1)
     layout.addWidget(self.leFileName, 0, 2, 1, 3)
     layout.addWidget(self.bnSaveFile, 0, 5)
-    layout.addWidget(self.text_edit, 1, 1, 5, 5)
-    layout.addWidget(self.leStatus, 6, 1, 1, 5)
+
+    layout.addWidget(self.bnOpenExpData, 1, 1)
+    layout.addWidget(self.leExpDataFileName, 1, 2, 1, 3)
+    layout.addWidget(self.bnSaveExpDataFile, 1, 5)
+
+    layout.addWidget(self.text_edit, 2, 1, 6, 5)
+    layout.addWidget(self.leStatus, 8, 1, 1, 5)
 
     for i in range(layout.columnCount()) :
       layout.setColumnStretch(i, 1)
@@ -192,12 +227,16 @@ class MyWindow(QMainWindow):
     try :
       with open(self.lastDWBARecord, 'r') as file:
         self.DWBAFileName = file.readline().strip()
+        self.ExpDataFileName = file.readline().strip()
     except:
       self.DWBAFileName = "DWBA"
+      self.ExpDataFileName = ""
 
   def SaveLastOpenDWBASource(self):
     with open(self.lastDWBARecord, 'w') as file:
       file.write(self.DWBAFileName)
+      file.write("\n")
+      file.write(self.ExpDataFileName)
 
   def OnOffXsecOption(self):
     self.cbXsec.setEnabled(self.chkExtracrXsec.isChecked())
@@ -209,6 +248,20 @@ class MyWindow(QMainWindow):
       self.leFileName.setText(self.DWBAFileName)
       self.LoadFileToTextBox(self.DWBAFileName)
       self.SaveLastOpenDWBASource()
+      self.bnSaveExpDataFile.setEnabled(False)
+
+  def OpenExpDataFile(self):
+    file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "Text File (*.txt)")        
+    if file_path:
+      self.ExpDataFileName = file_path
+      self.leExpDataFileName.setText(self.ExpDataFileName)
+      self.LoadFileToTextBox(self.ExpDataFileName)
+      self.bnSaveExpDataFile.setEnabled(True)
+      self.SaveLastOpenDWBASource()
+
+  def LoadExpDataToTextBox(self):
+    self.LoadFileToTextBox(self.ExpDataFileName)
+    self.bnSaveExpDataFile.setEnabled(True)
 
   def LoadFileToTextBox(self, fileName, moveToButton = False):
     # print(fileName)
@@ -227,9 +280,17 @@ class MyWindow(QMainWindow):
     except Exception as e:
       self.text_edit.setText(f"Failed to load file:\n{e}")
       self.leStatus.setText(f"Failed to load file:\n{e}")
+    
+    self.bnSaveExpDataFile.setEnabled(False)
   
   def SaveFile(self):
     file_path = self.leFileName.text()
+    with open(file_path, 'w') as file:
+      file.write(self.text_edit.toPlainText())
+      self.leStatus.setText(f"File saved to: {file_path}")
+  
+  def SaveExpDataFile(self):
+    file_path = self.leExpDataFileName.text()
     with open(file_path, 'w') as file:
       file.write(self.text_edit.toPlainText())
       self.leStatus.setText(f"File saved to: {file_path}")
@@ -303,6 +364,10 @@ class MyWindow(QMainWindow):
       self.Ex_window.plot_Ex_graph()
       self.Ex_window.show()
 
+  def fitData(self):
+    self.fitting.read_expData(self.ExpDataFileName)
+    self.fitting.read_data(self.DWBAFileName + ".Xsec.txt")
+    self.fitting.FitData()
 
   def closeEvent(self, event):
     if self.plot_window:
