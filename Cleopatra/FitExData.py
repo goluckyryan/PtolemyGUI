@@ -13,6 +13,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from ExtractXsecPy import read_DWBA
 
+default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
 class FitPlotWidget(QWidget):
   def __init__(self, figure):
     super().__init__()
@@ -58,6 +60,9 @@ class Fitting():
         line = line.strip()
         
         if not line:
+          continue
+
+        if line.startswith("$"):
           continue
             
         # Check for excitation energy lines
@@ -121,6 +126,8 @@ class Fitting():
       fitTheory_lower = []
       fitTheory_upper = []
 
+      para = []
+      perr = []
       chi_squared = []
 
       for k in range(nFit):
@@ -154,14 +161,15 @@ class Fitting():
                                 p0=np.ones(len(xsecID)), # Initial guess for scale parameters
                                 bounds=(lower_bounds, upper_bounds)) 
 
-          perr = np.sqrt(np.diag(pcov))  # Standard deviation of the parameters
+          para.append(popt)
+          perr.append(np.sqrt(np.diag(pcov)))  # Standard deviation of the parameters
 
           # Get the fitted model values
           y_fit = fit_func(x_exp, *popt)
           residuals = y_exp - y_fit
           chi_squared.append(np.sum((residuals / y_err) ** 2))
 
-          print(f"Fitted scale for fit {k}: {', '.join([f'{x:.3f}' for x in popt])} +/- {', '.join([f'{x:.3f}' for x in perr])} | Chi^2 : {chi_squared[-1]:.4f}")
+          print(f"Fitted scale for fit {k}: {', '.join([f'{x:.3f}' for x in popt])} +/- {', '.join([f'{x:.3f}' for x in perr[-1]])} | Chi^2 : {chi_squared[-1]:.4f}")
           # print(f"Fitted scale for fit {k}: {popt} +/- {perr} | Chi^2 : {chi_squared[-1]:.4f}")
 
           # Append the theoretical fit for this fit option
@@ -186,7 +194,7 @@ class Fitting():
 
       # Plot all fit theories
       for i, fit in enumerate(fitTheory):
-        plt.plot(self.dataX, fit, label=f'Chi2:{chi_squared[i]:.3f} | Xsec:{self.fitOption[expDataID][i]} Fit')
+        plt.plot(self.dataX, fit, label=f'Chi2:{chi_squared[i]:.3f} | Xsec:{self.fitOption[expDataID][i]}')
         plt.fill_between(self.dataX, fitTheory_lower[i], fitTheory_upper[i], alpha=0.2)
 
       # Customize plot
@@ -200,6 +208,10 @@ class Fitting():
       # Replace plt.title() with plt.text() to position the title inside the plot
       plt.text(0.05, 0.05, f'Fit for Exp Data : {self.ExList[expDataID]} MeV', transform=plt.gca().transAxes,
          fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='black')
+
+      for i, _ in enumerate(para):
+        plt.text(0.05, 0.1 + 0.05*i, f"Xsec-{self.fitOption[expDataID][i].strip()}: {', '.join([f'{x:.3f}' for x in para[i]])} +/- {', '.join([f'{x:.3f}' for x in perr[i]])}" , transform=plt.gca().transAxes,
+           fontsize=12, verticalalignment='bottom', horizontalalignment='left', color=default_colors[i])
 
 
       
