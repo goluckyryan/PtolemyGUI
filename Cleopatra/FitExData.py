@@ -2,11 +2,35 @@
 
 import numpy as np
 from scipy.optimize import curve_fit
+
+from PyQt6.QtWidgets import (
+  QVBoxLayout, QWidget
+)
+
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 from ExtractXsecPy import read_DWBA
 
-class Fitting:
+class FitPlotWidget(QWidget):
+  def __init__(self, figure):
+    super().__init__()
+
+    self.setWindowTitle("Fit Plot")
+    self.resize(800, 600)
+
+    self.canvas = FigureCanvas(figure)
+    self.toolbar = NavigationToolbar(self.canvas, self)
+
+    layout = QVBoxLayout(self)
+    layout.addWidget(self.toolbar)
+    layout.addWidget(self.canvas)
+
+    self.setLayout(layout)
+
+
+class Fitting():
   def __init__(self):
 
     self.ExList = []
@@ -37,7 +61,7 @@ class Fitting:
           continue
             
         # Check for excitation energy lines
-        if line.startswith("#======================"):
+        if line.startswith("#="):
           # If there's an existing data block, save it
           if current_data:
             self.expData.append(np.array(current_data, dtype=float))
@@ -77,12 +101,12 @@ class Fitting:
 
   def FitData(self):
 
-    # Set initial offset values
-    x_offset, y_offset = 2000, 100
-
-    figure = []
+    figure_list = []
 
     for expDataID in range(len(self.expData)):
+      
+      print("============================================")
+
       # Get the number of fit options and cross-sections
       nFit = len(self.fitOption[expDataID])
       nXsec = len(self.data)
@@ -96,6 +120,8 @@ class Fitting:
       fitTheory = []
       fitTheory_lower = []
       fitTheory_upper = []
+
+      chi_squared = []
 
       for k in range(nFit):
           # Get the cross-section IDs for the current fit option and strip extra spaces
@@ -129,7 +155,14 @@ class Fitting:
                                 bounds=(lower_bounds, upper_bounds)) 
 
           perr = np.sqrt(np.diag(pcov))  # Standard deviation of the parameters
-          print(f"Fitted scale for fit {k+1}: {popt} +/- {perr}")
+
+          # Get the fitted model values
+          y_fit = fit_func(x_exp, *popt)
+          residuals = y_exp - y_fit
+          chi_squared.append(np.sum((residuals / y_err) ** 2))
+
+          print(f"Fitted scale for fit {k}: {', '.join([f'{x:.3f}' for x in popt])} +/- {', '.join([f'{x:.3f}' for x in perr])} | Chi^2 : {chi_squared[-1]:.4f}")
+          # print(f"Fitted scale for fit {k}: {popt} +/- {perr} | Chi^2 : {chi_squared[-1]:.4f}")
 
           # Append the theoretical fit for this fit option
           fitTheory.append(np.zeros_like(self.dataX))
@@ -146,14 +179,14 @@ class Fitting:
               fitTheory_lower[k] += (popt[p] - perr[p]) * np.interp(self.dataX, self.dataX, self.data[id])
 
       fig = plt.figure()
-      figure.append(fig)
+      figure_list.append(fig)
 
       # Plot results
-      plt.errorbar(x_exp, y_exp, xerr=x_err, yerr=y_err, fmt='o', label='Experimental Data', color='blue')
+      plt.errorbar(x_exp, y_exp, xerr=x_err, yerr=y_err, fmt='x', label='Experimental Data', color='black', markersize = 15, elinewidth=2)
 
       # Plot all fit theories
       for i, fit in enumerate(fitTheory):
-        plt.plot(self.dataX, fit, label=f'Xsec:{self.fitOption[expDataID][i]} Fit')
+        plt.plot(self.dataX, fit, label=f'Chi2:{chi_squared[i]:.3f} | Xsec:{self.fitOption[expDataID][i]} Fit')
         plt.fill_between(self.dataX, fitTheory_lower[i], fitTheory_upper[i], alpha=0.2)
 
       # Customize plot
@@ -168,11 +201,6 @@ class Fitting:
       plt.text(0.05, 0.05, f'Fit for Exp Data : {self.ExList[expDataID]} MeV', transform=plt.gca().transAxes,
          fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='black')
 
-      manager = plt.get_current_fig_manager()
-      # manager.window.wm_geometry(f"+{x_offset}+{y_offset}")
-      manager.set_window_title(f"Exp Data : {self.ExList[expDataID]} MeV")
-      
-      x_offset += 100
-      y_offset += 100
 
-    plt.show()
+      
+    return figure_list

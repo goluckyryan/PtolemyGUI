@@ -18,7 +18,7 @@ class MatPlotLibWindow(QWidget):
     super().__init__()
 
     self.setWindowTitle("DWBA Plot")
-    self.setGeometry(100, 100, 800, 600)
+    self.resize(800, 600)
 
     self.x = []
     self.data = []

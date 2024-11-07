@@ -19,7 +19,8 @@ class ExWindow(QWidget):
     super().__init__()
 
     self.setWindowTitle("Ex Plot")
-    self.setGeometry(100, 100, 400, 800)
+    # self.setGeometry(100, 100, 400, 800)
+    self.resize(400, 800)
 
     self.ASym = ""
     self.maxEx = 0

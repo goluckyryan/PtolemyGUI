@@ -17,7 +17,7 @@ from CustomTextEdit import CustomTextEdit
 from ExtractXsecPy import extract_xsec
 from ExWindow import ExWindow
 from MatPlotLibWindow import MatPlotLibWindow
-from FitExData import Fitting
+from FitExData import Fitting, FitPlotWidget
 
 ################################################## MainWindow
 class MyWindow(QMainWindow):
@@ -25,7 +25,7 @@ class MyWindow(QMainWindow):
     super().__init__()
 
     self.setWindowTitle("Ptolemy GUI")
-    self.setGeometry(100, 100, 1000, 800)
+    self.resize(1000, 800)
     self.setMinimumSize(1000, 800)
 
     self.lastDWBARecord = "lastDWBA.txt"
@@ -36,6 +36,7 @@ class MyWindow(QMainWindow):
     self.plot_window = MatPlotLibWindow() 
     self.Ex_window = ExWindow()
     self.fitting = Fitting()
+    self.fitCanvas = []
 
     # Set up Group Box for DWBA Control
     self.gbDWBA = QGroupBox("DWBA")
@@ -192,6 +193,7 @@ class MyWindow(QMainWindow):
 
     self.LoadFileToTextBox(self.DWBAFileName, True)
 
+    self.bnSaveFile.setEnabled(True)
     self.bnSaveExpDataFile.setEnabled(False)
 
     # Set up the layout
@@ -249,6 +251,7 @@ class MyWindow(QMainWindow):
       self.LoadFileToTextBox(self.DWBAFileName)
       self.SaveLastOpenDWBASource()
       self.bnSaveExpDataFile.setEnabled(False)
+      self.bnSaveFile.setEnabled(True)
 
   def OpenExpDataFile(self):
     file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "Text File (*.txt)")        
@@ -257,13 +260,19 @@ class MyWindow(QMainWindow):
       self.leExpDataFileName.setText(self.ExpDataFileName)
       self.LoadFileToTextBox(self.ExpDataFileName)
       self.bnSaveExpDataFile.setEnabled(True)
+      self.bnSaveFile.setEnabled(False)
       self.SaveLastOpenDWBASource()
 
   def LoadExpDataToTextBox(self):
     self.LoadFileToTextBox(self.ExpDataFileName)
+    self.leFileName.setText(self.DWBAFileName)
     self.bnSaveExpDataFile.setEnabled(True)
+    self.bnSaveFile.setEnabled(False)
 
-  def LoadFileToTextBox(self, fileName, moveToButton = False):
+  def LoadFileToTextBox(self, fileName, moveToButton = False):    
+    self.bnSaveExpDataFile.setEnabled(False)
+    self.bnSaveFile.setEnabled(True)
+
     # print(fileName)
     try:
       with open(fileName, 'r') as file:
@@ -281,19 +290,19 @@ class MyWindow(QMainWindow):
       self.text_edit.setText(f"Failed to load file:\n{e}")
       self.leStatus.setText(f"Failed to load file:\n{e}")
     
-    self.bnSaveExpDataFile.setEnabled(False)
-  
   def SaveFile(self):
-    file_path = self.leFileName.text()
-    with open(file_path, 'w') as file:
-      file.write(self.text_edit.toPlainText())
-      self.leStatus.setText(f"File saved to: {file_path}")
+    if self.bnSaveFile.isEnabled() :
+      file_path = self.leFileName.text()
+      with open(file_path, 'w') as file:
+        file.write(self.text_edit.toPlainText())
+        self.leStatus.setText(f"File saved to: {file_path}")
   
   def SaveExpDataFile(self):
-    file_path = self.leExpDataFileName.text()
-    with open(file_path, 'w') as file:
-      file.write(self.text_edit.toPlainText())
-      self.leStatus.setText(f"File saved to: {file_path}")
+    if self.bnSaveExpDataFile.isEnabled() :
+      file_path = self.leExpDataFileName.text()
+      with open(file_path, 'w') as file:
+        file.write(self.text_edit.toPlainText())
+        self.leStatus.setText(f"File saved to: {file_path}")
 
   def DeleteinOutXsecFiles(self):
     if os.path.exists(self.DWBAFileName + ".in"):
@@ -365,9 +374,17 @@ class MyWindow(QMainWindow):
       self.Ex_window.show()
 
   def fitData(self):
+    self.SaveExpDataFile()
+
+    self.fitCanvas = []
     self.fitting.read_expData(self.ExpDataFileName)
     self.fitting.read_data(self.DWBAFileName + ".Xsec.txt")
-    self.fitting.FitData()
+    figures = self.fitting.FitData()
+
+    if figures:
+      for p, fig in enumerate(figures):
+        self.fitCanvas.append(FitPlotWidget(fig))
+        self.fitCanvas[-1].show()
 
   def closeEvent(self, event):
     if self.plot_window:
@@ -375,6 +392,9 @@ class MyWindow(QMainWindow):
     if self.Ex_window:
       self.Ex_window.close()  # Close the PlotWindow when MainWindow closes
       self.Ex_window.__del__()
+    if self.fitCanvas :
+      for x in self.fitCanvas:
+        x.close()
     print("============== Bye Bye ========== ")
     event.accept()  # Accept the event to proceed with closing the main window
 
