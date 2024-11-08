@@ -17,7 +17,7 @@ from CustomTextEdit import CustomTextEdit
 from ExtractXsecPy import extract_xsec
 from ExWindow import ExWindow
 from MatPlotLibWindow import MatPlotLibWindow
-from FitExData import Fitting, FitPlotWidget
+from FitExData import Fitting
 
 ################################################## MainWindow
 class MyWindow(QMainWindow):
@@ -400,15 +400,9 @@ class MyWindow(QMainWindow):
   def fitData(self):
     self.SaveExpDataFile()
 
-    self.fitCanvas = []
     self.fitting.read_expData(self.ExpDataFileName)
     self.fitting.read_data(self.DWBAFileName + ".Xsec.txt")
-    figures = self.fitting.FitData()
-
-    if figures:
-      for p, fig in enumerate(figures):
-        self.fitCanvas.append(FitPlotWidget(fig))
-        self.fitCanvas[-1].show()
+    self.fitting.plot_fits()
 
   def closeEvent(self, event):
     if self.plot_window:
@@ -416,9 +410,6 @@ class MyWindow(QMainWindow):
     if self.Ex_window:
       self.Ex_window.close()  # Close the PlotWindow when MainWindow closes
       self.Ex_window.__del__()
-    if self.fitCanvas :
-      for x in self.fitCanvas:
-        x.close()
     print("============== Bye Bye ========== ")
     event.accept()  # Accept the event to proceed with closing the main window
 

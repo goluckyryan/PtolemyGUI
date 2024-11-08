@@ -59,7 +59,7 @@ class MatPlotLibWindow(QWidget):
       self.ax.plot(self.x, y, plotStyle, label=self.headers[i + 1])
 
     self.ax.set_xlabel("Angle_CM [Deg]")
-    self.ax.set_ylabel("Xsec [mb/sr]")
+    self.ax.set_ylabel(r'$\theta_{cm}$ [deg]')
     self.ax.legend(loc='upper right', frameon=True)
 
     # Apply log scale for y-axis if selected
@@ -75,7 +75,9 @@ class MatPlotLibWindow(QWidget):
       self.ax.grid(False)
 
     self.ax.autoscale(enable=True, axis='x', tight=True)
-    self.figure.tight_layout()
+    # self.figure.tight_layout()
+    self.figure.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.1)
+
 
     self.canvas.draw_idle()
 
