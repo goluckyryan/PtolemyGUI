@@ -115,8 +115,9 @@ class FitPlotWindow(QWidget):
       fitXsecID = list(dict.fromkeys(fitXsecID))
       fitHeaders = list(dict.fromkeys(fitHeaders))
 
+      size = len(fitHeaders) - 1
       for i , header in enumerate(fitHeaders):
-        self.ax.text(0.02, 0.10 + 0.05*i, f'Fit-{fitXsecID[i]} : {header}', transform=plt.gca().transAxes,
+        self.ax.text(0.02, 0.10 + 0.05 * size - 0.05*i, f'Fit-{fitXsecID[i]} : {header}', transform=plt.gca().transAxes,
           fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='grey')
 
 
