@@ -65,16 +65,16 @@ class Fitting():
         if line.startswith("$"):
           continue
             
-        # Check for excitation energy lines
+        # Check for dataSet lines
         if line.startswith("#="):
           # If there's an existing data block, save it
           if current_data:
             self.expData.append(np.array(current_data, dtype=float))
             current_data = []
               
-          # Extract excitation energy
-          Ex_energy = line.split()[1]
-          self.ExList.append(float(Ex_energy))
+          # Extract dataSet Name
+          dataName = line.split()[1]
+          self.ExList.append(dataName)
         
         # Check for fit option lines
         elif line.startswith("fit"):
@@ -206,7 +206,7 @@ class Fitting():
       plt.yscale('log')
 
       # Replace plt.title() with plt.text() to position the title inside the plot
-      plt.text(0.05, 0.05, f'Fit for Exp Data : {self.ExList[expDataID]} MeV', transform=plt.gca().transAxes,
+      plt.text(0.05, 0.05, f'Fit for Exp Data : {self.ExList[expDataID]}', transform=plt.gca().transAxes,
          fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='black')
 
       for i, _ in enumerate(para):

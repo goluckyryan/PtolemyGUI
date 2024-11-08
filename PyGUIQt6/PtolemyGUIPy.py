@@ -264,8 +264,23 @@ class MyWindow(QMainWindow):
       self.SaveLastOpenDWBASource()
 
   def LoadExpDataToTextBox(self):
-    self.LoadFileToTextBox(self.ExpDataFileName)
-    self.leFileName.setText(self.DWBAFileName)
+    if self.ExpDataFileName == "" :
+      self.text_edit.clear()
+      self.text_edit.append("$<-- for comment line")
+      self.text_edit.append("$No expData found, this is a template")
+      self.text_edit.append("$line start with '#=' starts a data set")
+      self.text_edit.append("#============== state")
+      self.text_edit.append("$line started with 'fit' indicate which DWBA Xsec to be fitted. ")
+      self.text_edit.append("$0 for the fist one, 0+1 fit both 0 and 1.")
+      self.text_edit.append("fit 0, 0+1")
+      self.text_edit.append("$angle_deg  ang_err   count   count_err")
+      self.text_edit.append("10          1         100     10")
+      self.text_edit.append("20          1         200     14")
+      self.text_edit.append("30          1         80      7")
+    else:
+      self.LoadFileToTextBox(self.ExpDataFileName)
+      self.leFileName.setText(self.DWBAFileName)
+
     self.bnSaveExpDataFile.setEnabled(True)
     self.bnSaveFile.setEnabled(False)
 
@@ -300,9 +315,18 @@ class MyWindow(QMainWindow):
   def SaveExpDataFile(self):
     if self.bnSaveExpDataFile.isEnabled() :
       file_path = self.leExpDataFileName.text()
+      if file_path == "" :
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Text Files (*.txt)")
+        if not file_path.lower().endswith(".txt"):
+          file_path += ".txt"  
+        self.leExpDataFileName.setText(file_path)
+        self.ExpDataFileName = file_path
+
       with open(file_path, 'w') as file:
         file.write(self.text_edit.toPlainText())
         self.leStatus.setText(f"File saved to: {file_path}")
+      
+      self.SaveLastOpenDWBASource()
 
   def DeleteinOutXsecFiles(self):
     if os.path.exists(self.DWBAFileName + ".in"):
