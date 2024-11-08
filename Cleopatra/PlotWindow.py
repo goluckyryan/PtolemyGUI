@@ -29,6 +29,10 @@ class FitPlotWindow(QWidget):
     self.gridline_checkbox = QCheckBox("Show Gridlines")
     self.gridline_checkbox.stateChanged.connect(self.plot_Fit)
 
+    self.legend_checkbox = QCheckBox("Show Legends")
+    self.legend_checkbox.setChecked(True)
+    self.legend_checkbox.stateChanged.connect(self.plot_Fit)
+
     self.figure, self.ax = plt.subplots()
     self.canvas = FigureCanvas(self.figure)
     self.toolbar = NavigationToolbar(self.canvas, self)
@@ -37,24 +41,31 @@ class FitPlotWindow(QWidget):
     layout.addWidget(self.toolbar, 0, 0, 1, 3)
     layout.addWidget(self.log_scale_checkbox, 1, 0)
     layout.addWidget(self.gridline_checkbox, 1, 1)
+    layout.addWidget(self.legend_checkbox, 1, 2)
     layout.addWidget(self.canvas, 2, 0, 5, 3)
 
     self.setLayout(layout)
 
-  def set_data(self, ID, expData, fitOption, dataName_list, xData, yData_list, para, perr, chi_square ):
+  def set_data(self, ID, expData, fitOption, dataName_list, xData, yData_list, headers, para, perr, chi_square ):
     self.x_exp = expData[ID][:, 0]
     self.x_err = expData[ID][:, 1]
     self.y_exp = expData[ID][:, 2]
     self.y_err = expData[ID][:, 3]
-    self.dataName = dataName_list[ID]
+    self.dataName = dataName_list
     self.fitOption = fitOption[ID]
-
-    self.xData = xData
-    self.yData_list = yData_list
 
     self.para = para
     self.perr = perr
     self.chi_square = chi_square
+
+    self.xData = xData
+    self.yData_list = yData_list
+
+    self.headers = headers
+
+    print(self.dataName)
+    print(self.fitOption)
+    print(self.headers)
 
   def plot_Fit(self):
     self.ax.clear()
@@ -65,6 +76,9 @@ class FitPlotWindow(QWidget):
     fitTheory = []
     fitTheory_lower = []
     fitTheory_upper = []
+
+    fitXsecID = []
+    fitHeaders = []
     
     for k in range(len(self.fitOption)):
 
@@ -75,23 +89,35 @@ class FitPlotWindow(QWidget):
       fitTheory_upper.append(np.zeros_like(self.xData))
       fitTheory_lower.append(np.zeros_like(self.xData))
       
-      for id in xsecID:
-        fitTheory[k] += self.para[k] * np.interp(self.xData, self.xData, self.yData_list[id])
-        fitTheory_upper[k] += (self.para[k] + self.perr[k]) * np.interp(self.xData, self.xData, self.yData_list[id])
-        fitTheory_lower[k] += (self.para[k] - self.perr[k]) * np.interp(self.xData, self.xData, self.yData_list[id])
+      for i, id in enumerate(xsecID):
+        fitXsecID.append(id)
+        fitHeaders.append(self.headers[id])
+        fitTheory[k] += self.para[k][i] * np.interp(self.xData, self.xData, self.yData_list[id])
+        fitTheory_upper[k] += (self.para[k][i] + self.perr[k][i]) * np.interp(self.xData, self.xData, self.yData_list[id])
+        fitTheory_lower[k] += (self.para[k][i] - self.perr[k][i]) * np.interp(self.xData, self.xData, self.yData_list[id])
 
 
     for i, fit in enumerate(fitTheory):
       self.ax.plot(self.xData, fit, label=f'Chi2:{self.chi_square[i]:.3f} | Xsec:{self.fitOption[i]}')
       self.ax.fill_between(self.xData, fitTheory_lower[i], fitTheory_upper[i], alpha=0.2)
 
-      self.ax.text(0.05, 0.1 + 0.05*i, f"Xsec-{self.fitOption[i].strip()}: {', '.join([f'{x:.3f}' for x in self.para[i]])} +/- {', '.join([f'{x:.3f}' for x in self.perr[i]])}" ,
-                transform=plt.gca().transAxes, fontsize=12, 
-                verticalalignment='bottom', horizontalalignment='left', color=self.default_colors[i])
+      if self.legend_checkbox.isChecked() :
+        self.ax.text(0.98, 0.98 - 0.05*i, rf"Fit-{self.fitOption[i].strip()}: {', '.join([f'{x:.3f}' for x in self.para[i]])} +/- {', '.join([f'{x:.3f}' for x in self.perr[i]])} | $\chi^2$ {self.chi_square[i]:.3f}" ,
+                  transform=plt.gca().transAxes, fontsize=12, fontfamily='monospace',
+                  verticalalignment='top', horizontalalignment='right', color=self.default_colors[i])
 
     # Replace plt.title() with plt.text() to position the title inside the plot
-    self.ax.text(0.05, 0.05, f'Fit for Exp Data : {self.dataName}', transform=plt.gca().transAxes,
+    self.ax.text(0.02, 0.05, f'Exp Data : {self.dataName}', transform=plt.gca().transAxes,
         fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='black')
+
+
+    if self.legend_checkbox.isChecked() :
+      fitXsecID = list(dict.fromkeys(fitXsecID))
+      fitHeaders = list(dict.fromkeys(fitHeaders))
+
+      for i , header in enumerate(fitHeaders):
+        self.ax.text(0.02, 0.10 + 0.05*i, f'Fit-{fitXsecID[i]} : {header}', transform=plt.gca().transAxes,
+          fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='grey')
 
 
     # Plot decorator
@@ -110,7 +136,7 @@ class FitPlotWindow(QWidget):
 
     self.ax.set_xlabel(r'$\theta_{cm}$ [deg]')
     self.ax.set_ylabel(r'd$\sigma$/d$\Omega$ [deg]')
-    self.ax.legend(loc='upper right', frameon=True)
+    # self.ax.legend(loc='upper right', frameon=True)
 
     self.ax.autoscale(enable=True, axis='x', tight=True)
     self.figure.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.1)

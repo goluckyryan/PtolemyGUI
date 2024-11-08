@@ -3,14 +3,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
 
-from PyQt6.QtWidgets import (
-  QVBoxLayout, QGridLayout, QWidget, QCheckBox
-)
-
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-
 from ExtractXsecPy import read_DWBA
 from PlotWindow import FitPlotWindow
 
@@ -88,7 +80,7 @@ class Fitting():
     print("=========== Number of data set:", len(self.dataName_list))
     for i in range(0, len(self.dataName_list)):
       print("-------------------------")
-      print("     ExList:", self.dataName_list[i])
+      print("  data Name:", self.dataName_list[i])
       print("Fit Options:", self.fitOption[i])
       print("  Data List:\n", self.expData[i])
 
@@ -156,10 +148,16 @@ class Fitting():
   def plot_fits(self):
 
     self.plot = []
-    
+
     for k , dN in enumerate(self.dataName_list):
       self.FitSingleData(k)
       self.plot.append( FitPlotWindow(f"Data-{k}"))
-      self.plot[-1].set_data(k, self.expData, self.fitOption, dN, self.dataX, self.data, self.para, self.para_err, self.chi_squared)
+      self.plot[-1].set_data(k, self.expData, self.fitOption, dN, 
+                             self.dataX, self.data, self.headers,
+                             self.para, self.para_err, self.chi_squared)
       self.plot[-1].plot_Fit()
       self.plot[-1].show()
+
+  def close_plots(self):
+    for plot in self.plot:
+      plot.close()

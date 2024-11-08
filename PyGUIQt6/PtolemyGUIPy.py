@@ -410,6 +410,8 @@ class MyWindow(QMainWindow):
     if self.Ex_window:
       self.Ex_window.close()  # Close the PlotWindow when MainWindow closes
       self.Ex_window.__del__()
+    
+    self.fitting.close_plots()
     print("============== Bye Bye ========== ")
     event.accept()  # Accept the event to proceed with closing the main window
 
