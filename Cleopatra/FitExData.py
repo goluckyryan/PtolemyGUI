@@ -35,7 +35,7 @@ class FitPlotWidget(QWidget):
 class Fitting():
   def __init__(self):
 
-    self.ExList = []
+    self.dataName_list = []
     self.fitOption = []
     self.expData = []
 
@@ -49,7 +49,7 @@ class Fitting():
     print(self.headers)
 
   def read_expData(self, fileName):
-    self.ExList = []
+    self.dataName_list = []
     self.fitOption = []
     self.expData = []
 
@@ -74,7 +74,7 @@ class Fitting():
               
           # Extract dataSet Name
           dataName = line.split()[1]
-          self.ExList.append(dataName)
+          self.dataName_list.append(dataName)
         
         # Check for fit option lines
         elif line.startswith("fit"):
@@ -92,14 +92,14 @@ class Fitting():
         self.expData.append(np.array(current_data, dtype=float))
 
     # Convert to numpy arrays
-    self.ExList = np.array(self.ExList)
+    self.dataName_list = np.array(self.dataName_list)
     self.expData = [np.array(data) for data in self.expData]
 
     # Output the result
-    print("=========== Number of data set:", len(self.ExList))
-    for i in range(0, len(self.ExList)):
+    print("=========== Number of data set:", len(self.dataName_list))
+    for i in range(0, len(self.dataName_list)):
       print("-------------------------")
-      print("     ExList:", self.ExList[i])
+      print("     ExList:", self.dataName_list[i])
       print("Fit Options:", self.fitOption[i])
       print("  Data List:\n", self.expData[i])
 
@@ -127,64 +127,64 @@ class Fitting():
       fitTheory_upper = []
 
       para = []
-      perr = []
+      para_err = []
       chi_squared = []
 
       for k in range(nFit):
-          # Get the cross-section IDs for the current fit option and strip extra spaces
-          xsecIDStr = self.fitOption[expDataID][k].strip()
-          xsecID = [int(part.strip()) for part in xsecIDStr.split('+')] if '+' in xsecIDStr else [int(xsecIDStr)]
+        # Get the cross-section IDs for the current fit option and strip extra spaces
+        xsecIDStr = self.fitOption[expDataID][k].strip()
+        xsecID = [int(part.strip()) for part in xsecIDStr.split('+')] if '+' in xsecIDStr else [int(xsecIDStr)]
 
-          # Ensure all cross-section IDs are valid
-          processFlag = True
-          for id in range(len(xsecID)):
-              if xsecID[id] >= nXsec:
-                  print(f"Error: Requested Xsec-{xsecID[id]} exceeds the number of available cross-sections ({nXsec})")
-                  processFlag = False
-          
-          if processFlag == False :
-            continue
+        # Ensure all cross-section IDs are valid
+        processFlag = True
+        for id in range(len(xsecID)):
+            if xsecID[id] >= nXsec:
+                print(f"Error: Requested Xsec-{xsecID[id]} exceeds the number of available cross-sections ({nXsec})")
+                processFlag = False
+        
+        if processFlag == False :
+          continue
 
-          # Define the fitting function: a weighted sum of the selected data
-          def fit_func(x, *scale):
-              y = np.zeros_like(x)
-              for p, id in enumerate(xsecID):
-                  y += scale[p] * np.interp(x, self.dataX, self.data[id])
-              return y
+        # Define the fitting function: a weighted sum of the selected data
+        def fit_func(x, *scale):
+            y = np.zeros_like(x)
+            for p, id in enumerate(xsecID):
+                y += scale[p] * np.interp(x, self.dataX, self.data[id])
+            return y
 
+        lower_bounds = [1e-6] * len(xsecID)  # Setting a small positive lower bound
+        upper_bounds = [np.inf] * len(xsecID)  # No upper bound
 
-          lower_bounds = [1e-6] * len(xsecID)  # Setting a small positive lower bound
-          upper_bounds = [np.inf] * len(xsecID)  # No upper bound
+        # Perform curve fitting using the fit_func and experimental data with y-errors as weights
+        popt, pcov = curve_fit(fit_func, x_exp, y_exp, sigma=y_err, absolute_sigma=True, 
+                              p0=np.ones(len(xsecID)), # Initial guess for scale parameters
+                              bounds=(lower_bounds, upper_bounds)) 
 
-          # Perform curve fitting using the fit_func and experimental data with y-errors as weights
-          popt, pcov = curve_fit(fit_func, x_exp, y_exp, sigma=y_err, absolute_sigma=True, 
-                                p0=np.ones(len(xsecID)), # Initial guess for scale parameters
-                                bounds=(lower_bounds, upper_bounds)) 
+        para.append(popt)
+        perr = np.sqrt(np.diag(pcov))# Standard deviation of the parameters
+        para_err.append(perr)  
 
-          para.append(popt)
-          perr.append(np.sqrt(np.diag(pcov)))  # Standard deviation of the parameters
+        # Get the fitted model values
+        y_fit = fit_func(x_exp, *popt)
+        residuals = y_exp - y_fit
+        chi_squared.append(np.sum((residuals / y_err) ** 2))
 
-          # Get the fitted model values
-          y_fit = fit_func(x_exp, *popt)
-          residuals = y_exp - y_fit
-          chi_squared.append(np.sum((residuals / y_err) ** 2))
+        print(f"Fitted scale for fit {k}: {', '.join([f'{x:.3f}' for x in popt])} +/- {', '.join([f'{x:.3f}' for x in perr])} | Chi^2 : {chi_squared[-1]:.4f}")
+        # print(f"Fitted scale for fit {k}: {popt} +/- {perr} | Chi^2 : {chi_squared[-1]:.4f}")
 
-          print(f"Fitted scale for fit {k}: {', '.join([f'{x:.3f}' for x in popt])} +/- {', '.join([f'{x:.3f}' for x in perr[-1]])} | Chi^2 : {chi_squared[-1]:.4f}")
-          # print(f"Fitted scale for fit {k}: {popt} +/- {perr} | Chi^2 : {chi_squared[-1]:.4f}")
+        # Append the theoretical fit for this fit option
+        fitTheory.append(np.zeros_like(self.dataX))
+        for p, id in enumerate(xsecID):
+          fitTheory[-1] += popt[p] * np.interp(self.dataX, self.dataX, self.data[id])
 
-          # Append the theoretical fit for this fit option
-          fitTheory.append(np.zeros_like(self.dataX))
-          for p, id in enumerate(xsecID):
-              fitTheory[k] += popt[p] * np.interp(self.dataX, self.dataX, self.data[id])
-
-          # Optionally, you can plot the uncertainty as shaded regions (confidence intervals)
-          # Create the upper and lower bounds of the theoretical model with uncertainties
-          fitTheory_upper.append(np.zeros_like(self.dataX))
-          fitTheory_lower.append(np.zeros_like(self.dataX))
-          
-          for p, id in enumerate(xsecID):
-              fitTheory_upper[k] += (popt[p] + perr[p]) * np.interp(self.dataX, self.dataX, self.data[id])
-              fitTheory_lower[k] += (popt[p] - perr[p]) * np.interp(self.dataX, self.dataX, self.data[id])
+        # Optionally, you can plot the uncertainty as shaded regions (confidence intervals)
+        # Create the upper and lower bounds of the theoretical model with uncertainties
+        fitTheory_upper.append(np.zeros_like(self.dataX))
+        fitTheory_lower.append(np.zeros_like(self.dataX))
+        
+        for p, id in enumerate(xsecID):
+          fitTheory_upper[-1] += (popt[p] + perr[p]) * np.interp(self.dataX, self.dataX, self.data[id])
+          fitTheory_lower[-1] += (popt[p] - perr[p]) * np.interp(self.dataX, self.dataX, self.data[id])
 
       fig = plt.figure()
       figure_list.append(fig)
@@ -206,13 +206,11 @@ class Fitting():
       plt.yscale('log')
 
       # Replace plt.title() with plt.text() to position the title inside the plot
-      plt.text(0.05, 0.05, f'Fit for Exp Data : {self.ExList[expDataID]}', transform=plt.gca().transAxes,
+      plt.text(0.05, 0.05, f'Fit for Exp Data : {self.dataName_list[expDataID]}', transform=plt.gca().transAxes,
          fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='black')
 
       for i, _ in enumerate(para):
-        plt.text(0.05, 0.1 + 0.05*i, f"Xsec-{self.fitOption[expDataID][i].strip()}: {', '.join([f'{x:.3f}' for x in para[i]])} +/- {', '.join([f'{x:.3f}' for x in perr[i]])}" , transform=plt.gca().transAxes,
+        plt.text(0.05, 0.1 + 0.05*i, f"Xsec-{self.fitOption[expDataID][i].strip()}: {', '.join([f'{x:.3f}' for x in para[i]])} +/- {', '.join([f'{x:.3f}' for x in para_err[i]])}" , transform=plt.gca().transAxes,
            fontsize=12, verticalalignment='bottom', horizontalalignment='left', color=default_colors[i])
 
-
-      
     return figure_list
