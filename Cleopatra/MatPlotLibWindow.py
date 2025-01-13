@@ -47,6 +47,11 @@ class MatPlotLibWindow(QWidget):
     layout.addWidget(self.gridline_checkbox, 1, 2)
     layout.addWidget(self.canvas, 2, 0, 5, 3)
 
+    self.ylabel = 'd.s.c.[mb/sr]'
+
+  def set_ylable(self, newY_Label):
+    self.ylabel = newY_Label
+
   def read_data(self,file_path):
     self.headers, self.x, self.data = read_DWBA(file_path)
 
@@ -58,8 +63,8 @@ class MatPlotLibWindow(QWidget):
     for i, y in enumerate(self.data):
       self.ax.plot(self.x, y, plotStyle, label=self.headers[i + 1])
 
-    self.ax.set_xlabel("Angle_CM [Deg]")
-    self.ax.set_ylabel(r'$\theta_{cm}$ [deg]')
+    self.ax.set_xlabel(r"$\theta_{cm}$ [Deg]")
+    self.ax.set_ylabel(self.ylabel)
     self.ax.legend(loc='upper right', frameon=True)
 
     # Apply log scale for y-axis if selected

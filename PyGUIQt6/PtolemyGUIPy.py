@@ -382,6 +382,10 @@ class MyWindow(QMainWindow):
 
     if isRunOK and self.chkExtracrXsec.isChecked() and self.file_exists(self.DWBAFileName + ".out") :
       extract_xsec(self.DWBAFileName + ".out", self.cbXsec.currentIndex())
+      if self.cbXsec.currentIndex() == 1 :
+        self.plot_window.set_ylable(r"$(d\sigma/d\theta)$ / Ruth.")
+      else:
+        self.plot_window.set_ylable(r"$d\sigma/d\theta$ [mb/sr]")
 
     if isRunOK and self.chkPlot.isChecked() and self.file_exists(self.DWBAFileName + ".Xsec.txt") :
       self.open_plot_window()
