@@ -10,3 +10,4 @@ __pycache__
 IAEA_NuclearData.csv
 
 *.txt
+*.o
