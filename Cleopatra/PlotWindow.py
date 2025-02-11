@@ -70,9 +70,6 @@ class FitPlotWindow(QWidget):
   def plot_Fit(self):
     self.ax.clear()
 
-    self.ax.errorbar(self.x_exp, self.y_exp, xerr=self.x_err, yerr=self.y_err, 
-                    fmt='x', label='Experimental Data', color='black', markersize = 15, elinewidth=2)
-
     fitTheory = []
     fitTheory_lower = []
     fitTheory_upper = []
@@ -121,6 +118,10 @@ class FitPlotWindow(QWidget):
           fontsize=12, verticalalignment='bottom', horizontalalignment='left', color='grey')
 
 
+    self.ax.errorbar(self.x_exp, self.y_exp, xerr=self.x_err, yerr=self.y_err, 
+                    fmt='x', label='Experimental Data', color='black', markersize = 15, elinewidth=2)
+
+
     # Plot decorator
     # Apply log scale for y-axis if selected
     if self.log_scale_checkbox.isChecked():
@@ -136,7 +137,7 @@ class FitPlotWindow(QWidget):
 
 
     self.ax.set_xlabel(r'$\theta_{cm}$ [deg]')
-    self.ax.set_ylabel(r'd$\sigma$/d$\Omega$ [deg]')
+    self.ax.set_ylabel(r'd$\sigma$/d$\Omega$ [a.u.]')
     # self.ax.legend(loc='upper right', frameon=True)
 
     self.ax.autoscale(enable=True, axis='x', tight=True)
