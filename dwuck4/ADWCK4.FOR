@@ -380,8 +380,8 @@ C
         Q=E
         E=(ECM(1)+Q)*(FM(2)+FMA(2))/FMA(2)
       ENDIF
-      IS(N)=FS(N)
-      NS(N)=IS(N)+1
+      IS(N)=FS(N) ! 2*spin, FS(N) will divided by 2 later
+      NS(N)=IS(N)+1  ! 2*spin+1, number of m-state
       IF(AMASS.EQ.0.0) AMASS=FMA(1)
       IF(IK.EQ.0) DR(N)=DRF*AMASS/FMA(N)
       KMXX=KMAX

@@ -269,48 +269,56 @@ c***********************************************************************
      5           ,(DTEMP(1201),GP),(DTEMP(1601),S ),(DTEMP(2001),C )
       DATA ETA3/10.E+00/
 C
+
       IWORD=0
-      JT=NS(1)+NS(2)
-      NP=LPL2*JT
+      JT=NS(1)+NS(2) ! NS(1) is number of m-state in incoming channel, similar for NS(2), for (d,p), JT = 5
+      NP=LPL2*JT  ! LPLUS = LMAX + 1, LPL2 = 2*LPLUS, NP = 2*(LMAX+1)*JT, for LMAX = 15 (d,p) NP = 160, NP= number of partial wave, real + imag
       I=0
-      DO 30 N=1,2
-      DR2(N)=DR(N)**2/12.0
+      DO 30 N=1,2  !N = 1 : incoming, 2 : outgoing
+      DR2(N)=DR(N)**2/12.0 ! this is for the Numerov method
       R(N)=0.0
-      JS=NS(N)
-      DO 29 ISS=1,JS
-      I=I+1
-      LM(I)=0
+      JS=NS(N) ! number of m-state
+      DO 29 ISS=1,JS ! loop all m-state
+      I=I+1 
+      LM(I)=0  ! all LM(I) = 0
    29 CONTINUE
-   30 CONTINUE
-      DO 40 IQ=1,NP
-      F1(IQ)=0.0
-      F2(IQ)=0.0
+   30 CONTINUE  ! end of loop N
+      DO 40 IQ=1,NP ! initial distorted wave, have NP points 
+      F1(IQ)=0.0 ! 
+      F2(IQ)=0.0 ! F1 is n-1 of F2
       Q1(IQ)=0.0
-      Q2(IQ)=0.0
+      Q2(IQ)=0.0 ! Q1 is n-1 of Q2
    40 CONTINUE
 C
-      DO 100 M=1,K
-      MK=M+M-1
-      IX=0
-      I=0
-      DO 90 N=1,2
+
+      WRITE(6,*) 'Debug:  K=', K, ', NP=', NP
+      DO 100 M=1,K ! K = ABS(RMAX)/DRF + 1.0E-08
+      MK=M+M-1 ! 2*M-1, odd number from 1 to K, odd for real, even for imag
+      IX=0 ! loop from 1 to 128, step 32 = 2*LPLUS, why?
+      I=0 ! loop from 1 to 5, total m-state in incoming and outgoing channel?
+      
+      DO 90 N=1,2  ! looping incoming and outgoing channel
       R(N)=R(N)+DR(N)
-      DRR2(N)=DR2(N)/R(N)**2
-      Q(1)=1.0+DR2(N)*U(MK  ,N)
-      Q(2)=    DR2(N)*U(MK+1,N)
-      LTEMP=2.0*FK(N)*R(N)+ETA3
-      LTEMP=MIN0(LTEMP,LPLUS)
-      FI=-FS(N)
-      JS=NS(N)
-      SFACT=FS(N)**2+FS(N)
-      DO 89 ISS=1,JS
-      I=I+1
-      FL=0.0
-      DO 80 LL=1,LPLUS
-      FJ=FL+FI
-      IX1=IX+LL+LL-1
-      FLFACT=FL**2+FL
-      FACT=DR2(N)*(FJ**2+FJ-FLFACT-SFACT)*0.5
+      DRR2(N)=DR2(N)/R(N)**2 ! for L(L+1)/r^2 term in the potential
+      Q(1)=1.0+DR2(N)*U(MK  ,N)  ! seems to be the Numerov k_n
+      Q(2)=    DR2(N)*U(MK+1,N)  
+      LTEMP=2.0*FK(N)*R(N)+ETA3  ! ETA3 = 10, 
+      LTEMP=MIN0(LTEMP,LPLUS) ! set the maximum acceptable L
+
+      FI=-FS(N) ! m-state of S of channle-N, N=1 for incoming, =2 for outgoing
+      JS=NS(N) ! number of m-state of S
+      SFACT=FS(N)**2+FS(N) ! s * (s+1) 
+
+      DO 89 ISS=1,JS ! loop the m-state
+      I=I+1 ! I is the id of m-state
+      FL=0.0 ! FL runs from 0 to LMAX
+
+      DO 80 LL=1,LPLUS ! loop all L, fortan start index is 1, so need to run from 1 to LMAX + 1
+      FJ=FL+FI ! J = L + S, looping possible J-state
+      IX1=IX+LL+LL-1 ! loop from 1 to 159 odd, odd for real? even for imag?
+      FLFACT=FL**2+FL 
+      
+      FACT=DR2(N)*(FJ**2+FJ-FLFACT-SFACT)*0.5 ! for L(L+1)/r^2 
       Q(3     )=Q(1)+FACT*V(MK  ,N)-DRR2(N)*FLFACT
       Q(4     )=Q(2)+FACT*V(MK+1,N)
       IF(LL.LE.LM(I)) GO TO 70
@@ -318,10 +326,12 @@ C
       LM(I)=LM(I)+1
       IF(FJ-ABS(FL-FS(N)).LT.0.0) GO TO 72
 c       calculate approximate starting value
+
         f2(ix1  )=1.0
         do 50 ii=1,ll
         f2(ix1  )=f2(ix1  )*(fk(n)*r(n))/float(2*ii-1)
    50   continue
+
       F2(IX1+1)=0.0
       Q2(IX1  )=Q(3)*f2(ix1  )
       Q2(IX1+1)=Q(4)*f2(ix1  )
@@ -345,6 +355,12 @@ c
       Q1(IX1+1)=Q2(IX1+1)
       Q2(IX1  )=CTEMP(1)
       Q2(IX1+1)=CTEMP(2)
+
+      IF(N.EQ.1 .AND.  FL.EQ.1 .AND. FJ.EQ.1) THEN
+      WRITE(6,'(A, F7.3, F10.6, F10.6, F10.6, F10.6)') 
+     1'Debug:',R(N),Q1(IX1),Q1(IX1+1),Q2(IX1), Q2(IX1+1)
+      ENDIF
+      
    72 CONTINUE
       FL=FL+1.0
    80 CONTINUE
@@ -357,8 +373,13 @@ C     WRITE RADIAL WAVE FUNCTIONS ON TAPE 4
 C
       WRITE(4)(F2(J),J=1,NP)
   100 CONTINUE
+      
+C  ================= end of loop
+C
+
       LX=1
       drrc = 0.1
+
       DO 120 N=1,2
       R2=FK(N)*R(N)
       R1=R2-DR(N)*FK(N)
