@@ -534,8 +534,8 @@ C     NORMALIZE RADIAL FUNCTIONS
 C
       CTEMP(1)=FR(IX1)*C(IX1)-FR(IX2)*C(IX2)
       CTEMP(2)=FR(IX1)*C(IX2)+FR(IX2)*C(IX1)
-      FR(IX1)=CTEMP(1)
-      FR(IX2)=CTEMP(2)
+      FR(IX1)=CTEMP(1) ! real
+      FR(IX2)=CTEMP(2) ! complex
    30 CONTINUE
       IX=IX+LPL2
    39 CONTINUE
