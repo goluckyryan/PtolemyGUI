@@ -271,19 +271,29 @@ c***********************************************************************
 C
 
       IWORD=0
-      JT=NS(1)+NS(2) ! NS(1) is number of m-state in incoming channel, similar for NS(2), for (d,p), JT = 5
+      JT=NS(1)+NS(2) ! NS(1) is number of J-state in incoming channel, similar for NS(2), for (d,p), JT = 5
       NP=LPL2*JT  ! LPLUS = LMAX + 1, LPL2 = 2*LPLUS, NP = 2*(LMAX+1)*JT, for LMAX = 15 (d,p) NP = 160, NP= number of partial wave, real + imag
       I=0
-      DO 30 N=1,2  !N = 1 : incoming, 2 : outgoing
+c-------------------------------------- loop incoming and outgoing channel
+      DO 30 N=1,2  !N = 1 : incoming channel, 2 : outgoing
       DR2(N)=DR(N)**2/12.0 ! this is for the Numerov method
       R(N)=0.0
-      JS=NS(N) ! number of m-state
-      DO 29 ISS=1,JS ! loop all m-state
+      JS=NS(N) ! number of J-state in N-channel
+c------------------------------- loop all J-state
+      DO 29 ISS=1,JS ! loop all J-state
       I=I+1 
       LM(I)=0  ! all LM(I) = 0
    29 CONTINUE
+c------------------------------- end of J_state loop
    30 CONTINUE  ! end of loop N
-      DO 40 IQ=1,NP ! initial distorted wave, have NP points 
+c---------------------------------------- end of channel loop
+c     Nemerov method
+c     y''(r) = g(r) y(r)
+c     k(n+1)y(n+1) = (12 - 10*k(n))*y(n+1) - k(n-1)*y(n-1)
+c     k(n) = 1 + dr^2/12 * g(n)
+c     F2 = distorted wave = y(n)
+c     Q2 = k(n)*y(n)
+      DO 40 IQ=1,NP ! initial distorted wave, have NP partial wave 
       F1(IQ)=0.0 ! 
       F2(IQ)=0.0 ! F1 is n-1 of F2
       Q1(IQ)=0.0
@@ -292,45 +302,61 @@ C
 C
 
       WRITE(6,*) 'Debug:  K=', K, ', NP=', NP
+c============================================== loop radial grids
       DO 100 M=1,K ! K = ABS(RMAX)/DRF + 1.0E-08
       MK=M+M-1 ! 2*M-1, odd number from 1 to K, odd for real, even for imag
-      IX=0 ! loop from 1 to 128, step 32 = 2*LPLUS, why?
-      I=0 ! loop from 1 to 5, total m-state in incoming and outgoing channel?
-      
+      IX=0 ! loop from 1 to 128, step 32 = 2*LPLUS, each group of 32 is all L-states for a J-state
+      I=0 ! loop from 1 to 5, total J-state in incoming and outgoing channel
+c------------------------------------ loop channels      
       DO 90 N=1,2  ! looping incoming and outgoing channel
       R(N)=R(N)+DR(N)
       DRR2(N)=DR2(N)/R(N)**2 ! for L(L+1)/r^2 term in the potential
-      Q(1)=1.0+DR2(N)*U(MK  ,N)  ! seems to be the Numerov k_n
-      Q(2)=    DR2(N)*U(MK+1,N)  
-      LTEMP=2.0*FK(N)*R(N)+ETA3  ! ETA3 = 10, 
+      Q(1)=1.0+DR2(N)*U(MK  ,N)  ! for real part , seem to be the Numerov k_n
+      Q(2)=    DR2(N)*U(MK+1,N)  ! for imag part
+      LTEMP=2.0*FK(N)*R(N)+ETA3  ! ETA3 = 10, this is the theoritic maximum L
       LTEMP=MIN0(LTEMP,LPLUS) ! set the maximum acceptable L
-
-      FI=-FS(N) ! m-state of S of channle-N, N=1 for incoming, =2 for outgoing
-      JS=NS(N) ! number of m-state of S
+      FI=-FS(N) ! s-state of S of channle-N, N=1 for incoming, =2 for outgoing
+      JS=NS(N) ! number of J-state of S
       SFACT=FS(N)**2+FS(N) ! s * (s+1) 
-
-      DO 89 ISS=1,JS ! loop the m-state
-      I=I+1 ! I is the id of m-state
+c-------------------------- loop J-state
+      DO 89 ISS=1,JS ! loop the J-state
+      I=I+1 ! I is the id of J-state
       FL=0.0 ! FL runs from 0 to LMAX
-
+c---------------- loop the L-state
       DO 80 LL=1,LPLUS ! loop all L, fortan start index is 1, so need to run from 1 to LMAX + 1
       FJ=FL+FI ! J = L + S, looping possible J-state
-      IX1=IX+LL+LL-1 ! loop from 1 to 159 odd, odd for real? even for imag?
+      IX1=IX+LL+LL-1 ! index in memomry, loop from 1 to 159 odd, odd for real? even for imag?
       FLFACT=FL**2+FL 
-      
       FACT=DR2(N)*(FJ**2+FJ-FLFACT-SFACT)*0.5 ! for L(L+1)/r^2 
       Q(3     )=Q(1)+FACT*V(MK  ,N)-DRR2(N)*FLFACT
       Q(4     )=Q(2)+FACT*V(MK+1,N)
       IF(LL.LE.LM(I)) GO TO 70
       IF(LTEMP.LT.LL) GO TO 72
-      LM(I)=LM(I)+1
-      IF(FJ-ABS(FL-FS(N)).LT.0.0) GO TO 72
-c       calculate approximate starting value
-
+      LM(I)=LM(I)+1 !this control the calculateing of start value, weird but work.
+      IF(FJ-ABS(FL-FS(N)).LT.0.0) GO TO 72 ! j < ||l-s|, increase FL by 1
+c........... calculate approximate starting value
+c     for FL < 9, R=0.1 is set
+c     for FL = 10, R=0.5 is set
+c         FL = 11, R=0.89 is set
+c         FL = 12, R=1.3
+c         FL = 13, R=1.7
+c         FL = 14, R=2.1
+c         FL = 15, R=2.5
         f2(ix1  )=1.0
         do 50 ii=1,ll
         f2(ix1  )=f2(ix1  )*(fk(n)*r(n))/float(2*ii-1)
    50   continue
+
+c      IF(N.EQ.1 ) THEN
+c      WRITE(6,*) R(N), FL, FJ, IX, IX1, f2(ix1), M
+c      ENDIF
+
+c      IF(N.EQ.1 .AND.  FL.EQ.1 .AND. FJ.EQ.1) THEN
+c      WRITE(6,5678) 
+c     1'Debug:',R(N),Q1(IX1),Q2(IX1),F2(IX1),
+c     2              Q1(IX1+1),Q2(IX1+1),F2(IX1+1),
+c     3              Q(3), Q(4)
+c      ENDIF
 
       F2(IX1+1)=0.0
       Q2(IX1  )=Q(3)*f2(ix1  )
@@ -338,44 +364,64 @@ c       calculate approximate starting value
 C
 C     EVALUATE Q AT ORIGIN FOR L=1
 C
-      IF(LL.EQ.2) Q1(IX+3)=-f2(ix1  )/6.0
+      IF(LL.EQ.2) Q1(IX+3)=-f2(ix1  )/6.0 ! when LL is 2 or FL = 1
       GO TO 72
+c........... end of starting value
    70 CONTINUE
 c
 c     Step equations forward by dr(n) via Numerov-Fox-Goodwin-Milne method
 c
-      CTEMP(1)=12.*F2(IX1  )-10.*Q2(IX1  )-Q1(IX1  )
+
+c      IF(N.EQ.1 .AND.  FL.EQ.1 .AND. FJ.EQ.1) THEN
+c      WRITE(6,5678) 
+c     1'Debug:',R(N),Q1(IX1),Q2(IX1),F2(IX1),
+c     2              Q1(IX1+1),Q2(IX1+1),F2(IX1+1),
+c     3              Q(3), Q(4)
+c 5678 FORMAT(A, F7.3, F10.6, F10.6, F10.6, F10.6, 
+c     1          F10.6, F10.6, F10.6, F10.6)
+c      ENDIF
+c
+c    Q2 (n+1) = 12 * y (n) - 10 * Q2 (n) - Q2 (n-1) for real 
+c    Q2'(n+1) = 12 * y'(n) - 10 * Q2'(n) - Q2'(n-1) for imag
+c        a(n) = Q(3) = k(n) for real ?
+c        b(n) = Q(4) = k(n) for imag ?
+c     y (n+1) = [  Q2(n+1)*a(n) + Q2'(n+1)*b(n) ] / (a(n)^2 + b(n)^2)
+c     y'(n+1) = [ -Q2(n+1)*b(n) + Q2'(n+1)*a(n) ] / (a(n)^2 + b(n)^2)
+c
+      CTEMP(1)=12.*F2(IX1  )-10.*Q2(IX1  )-Q1(IX1  ) ! k(n+1)y(n+1) = (12 - 10*k(n))*y(n+1) - k(n-1)*y(n-1)
       CTEMP(2)=12.*F2(IX1+1)-10.*Q2(IX1+1)-Q1(IX1+1)
-      F1(IX1  )=F2(IX1  )
+      F1(IX1  )=F2(IX1  )  ! save the old f2 to f1
       F1(IX1+1)=F2(IX1+1)
-      DET=Q(3)**2+Q(4)**2
-      F2(IX1  )=(CTEMP(1)*Q(3     )+CTEMP(2)*Q(4     ))/DET
+      DET=Q(3)**2+Q(4)**2   ! real^2 + imag^2
+      F2(IX1  )=(CTEMP(1)*Q(3     )+CTEMP(2)*Q(4     ))/DET ! new f2 = 
       F2(IX1+1)=(CTEMP(2)*Q(3     )-CTEMP(1)*Q(4     ))/DET
       Q1(IX1  )=Q2(IX1  )
       Q1(IX1+1)=Q2(IX1+1)
       Q2(IX1  )=CTEMP(1)
       Q2(IX1+1)=CTEMP(2)
 
-      IF(N.EQ.1 .AND.  FL.EQ.1 .AND. FJ.EQ.1) THEN
-      WRITE(6,'(A, F7.3, F10.6, F10.6, F10.6, F10.6)') 
-     1'Debug:',R(N),Q1(IX1),Q1(IX1+1),Q2(IX1), Q2(IX1+1)
-      ENDIF
+c      IF(N.EQ.1 .AND.  FL.EQ.1 .AND. FJ.EQ.1) THEN
+c      WRITE(6,'(A, F7.3, F10.6, F10.6, F10.6, F10.6, F10.6, F10.6)') 
+c     1'Debug:',R(N),Q1(IX1),Q2(IX1),F2(IX1),
+c     2              Q1(IX1+1),Q2(IX1+1),F2(IX1+1)
+c      ENDIF
       
    72 CONTINUE
       FL=FL+1.0
    80 CONTINUE
+c---------------- end of loop the L-state
       FI=FI+1.0
-      IX=IX+LPL2
+      IX=IX+LPL2 ! after L-state loop, go to next index
    89 CONTINUE
+c-------------------------- end of loop J-state
    90 CONTINUE
+c------------------------------------ end of loop channels    
 C
 C     WRITE RADIAL WAVE FUNCTIONS ON TAPE 4
 C
       WRITE(4)(F2(J),J=1,NP)
   100 CONTINUE
-      
-C  ================= end of loop
-C
+c============================================== end of loop radial grids
 
       LX=1
       drrc = 0.1
@@ -404,8 +450,8 @@ c
       DO 200 N=1,2
       JS=NS(N)
       FI=-FS(N)
-      ARG=S(LX)-S(LX-LL+1)
-      Q(1)=COS(ARG)
+      ARG=S(LX)-S(LX-LL+1) ! Coulomb phase shift ?
+      Q(1)=COS(ARG) 
       Q(2)=SIN(ARG)
       Q(3)=Q(1)**2-Q(2)**2
       Q(4)=2.0*Q(1)*Q(2)
@@ -413,14 +459,14 @@ c
       FJ=FL+FI
       I=I+1
       DET=F(LX)*GP(LX)-FP(LX)*G(LX)
-      A(1)=(F1(IX1  )*GP(LX)-F2(IX1  )*G (LX))/DET
-      A(2)=(F1(IX1+1)*GP(LX)-F2(IX1+1)*G (LX))/DET
-      B(1)=(F2(IX1  )*F (LX)-F1(IX1  )*FP(LX))/DET
-      B(2)=(F2(IX1+1)*F (LX)-F1(IX1+1)*FP(LX))/DET
+      A(1)=(F1(IX1  )*GP(LX)-F2(IX1  )*G (LX))/DET  ! real part of F 
+      A(2)=(F1(IX1+1)*GP(LX)-F2(IX1+1)*G (LX))/DET  ! imag part of F
+      B(1)=(F2(IX1  )*F (LX)-F1(IX1  )*FP(LX))/DET  ! real part of G
+      B(2)=(F2(IX1+1)*F (LX)-F1(IX1+1)*FP(LX))/DET  ! imag part of G
       IF(LL.LE.LM(I).and.FJ-ABS(FL-FS(N)).ge.0.0) then
-        DET=(A(1)+B(2))**2+(A(2)-B(1))**2
-        CTEMP(1)=(A(1)+B(2))/DET
-        CTEMP(2)=(B(1)-A(2))/DET
+        DET=(A(1)+B(2))**2+(A(2)-B(1))**2 ! this is the normalization
+        CTEMP(1)=(A(1)+B(2))/DET  ! CTEMP(1) = cos(sigma)/sqrt(DET)
+        CTEMP(2)=(B(1)-A(2))/DET  ! = - sin(sigma)/sqrt(DET)
       else
           CTEMP(1)=0.0
           CTEMP(2)=0.0
@@ -428,13 +474,22 @@ c
 C
 C     C=NORMALIZATION CONSTANTS
 C
-      C(IX1  )=Q(1)*CTEMP(1)-Q(2)*CTEMP(2)
-      C(IX1+1)=Q(1)*CTEMP(2)+Q(2)*CTEMP(1)
+      C(IX1  )=Q(1)*CTEMP(1)-Q(2)*CTEMP(2) ! cos(sigma)^2 + sin(sigma)^2 = 1/ sqrt(DET)
+      C(IX1+1)=Q(1)*CTEMP(2)+Q(2)*CTEMP(1) ! 0 ?
+
 C
-C     E=PARTIAL WAVE SCATTERING AMPLITUDES
+C     E=PARTIAL WAVE SCATTERING AMPLITUDES, ScatAmp = (S-1)/2i
 C
-      E(2*I-1)=B(1)*CTEMP(1)-B(2)*CTEMP(2)
-      E(2*I  )=B(1)*CTEMP(2)+B(2)*CTEMP(1)
+      E(2*I-1)=B(1)*CTEMP(1)-B(2)*CTEMP(2) ! real part of ScatAmp = s2/2
+      E(2*I  )=B(1)*CTEMP(2)+B(2)*CTEMP(1) ! image = (1-s1)/2
+
+c      IF(N.EQ.1) THEN
+c      WRITE(6,*) 'Norm ', FL, FJ, A(1), A(2), B(1), B(2),
+c     1   CTEMP(1), CTEMP(2),
+c     2                    ARG, C(IX1), C(IX1+1), 1./DET,
+c     3                    E(2*I-1), E(2*I)
+c      ENDIF
+
       T1 = E(2*I-1)
       T2 = E(2*I  )
       if(isym(N) .and. is(N).eq.0 ) then
