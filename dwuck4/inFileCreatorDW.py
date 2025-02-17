@@ -200,14 +200,6 @@ A_B, Z_B = iso.GetAZ(nu_B)
 A_x = abs(A_a - A_b)
 Z_x = abs(Z_a - Z_b)
 
-#.... core 
-if A_A < A_B :
-    A_c = A_A
-    Z_c = Z_A
-else:
-    A_c = A_B
-    Z_c = Z_B
-
 #---- check mass number and charge number is balnaced
 if A_A + A_a - A_b - A_B != 0 or Z_A + Z_a - Z_b - Z_B != 0 :
     print("reaction is incorrect, mass or charge not balanced.")
@@ -225,7 +217,15 @@ mass_B = iso.GetMassFromSym(nu_B)
 
 mass_x = iso.GetMassFromAZ( A_x, Z_x)
 
-BindingEnergy = mass_B - mass_A - mass_x + Ex
+#.... core 
+if A_A < A_B : # (d,p)
+    A_c = A_A
+    Z_c = Z_A
+    BindingEnergy = mass_B - mass_A - mass_x + Ex
+else:  #(p,d)
+    A_c = A_B
+    Z_c = Z_B
+    BindingEnergy = mass_A - mass_B - mass_x
 
 sym_A = iso.GetSymbol(A_A, Z_A)
 sym_B = iso.GetSymbol(A_B, Z_B)
