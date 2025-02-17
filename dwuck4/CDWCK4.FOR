@@ -537,12 +537,13 @@ c
         igam2=.false.
       endif
 c
-      MPLUS=JX/2+1
-      IFACT=MPLUS*JR*JS
+      MPLUS=JX/2+1     ! j/2 + 1, spin transfer + 1
+      IFACT=MPLUS*JR*JS  ! (j+1)*num of m-state of sa * num of m-state of sb
       J2K=(1.0+PHASEF(NS(2)))/2.0
       M2K=JX-MPLUS-MPLUS+2
-      LX=LTR+LTR
-      TEMP2=SQRT(FLOAT((JX+1)*(IS(1)+1)))*flfact
+      LX=LTR+LTR 
+      TEMP2=SQRT(FLOAT((JX+1)*(IS(1)+1)))*flfact  ! IS(1) = 2*sa, JX = 2*j, sqrt((2j+1)*(2sa+1)) * flfact, for (d,p), flfact = 100 * sqrt((2l+1)/(2j+1))
+c     for (d,p), TEMP2 = 100 * sqrt((2sa+1)(2l+1))
       IF(FN.EQ.0.0) THEN
 c       clear amplitude storage unless for coherent sum
         IND=2*LPLUS*IFACT
@@ -550,9 +551,12 @@ c       clear amplitude storage unless for coherent sum
         D(M)=0.0
    10   CONTINUE
       ENDIF
-      IS1=-IS(1)
+
+      write(6,*) 'Debug', IND
+
+      IS1=-IS(1)   ! m-state of sa ? step +2
       DO 95 I=1,JR
-      IS2=-IS(2)
+      IS2=-IS(2)   ! m-state of sb ? step +2
       DO 90 J=1,JS
       IF(NLTR.NE.1) GO TO 14
       IF(JR*JS.EQ.1) GO TO 15
@@ -565,10 +569,10 @@ C
       READ (2)(FLL(INDEX),INDEX=1,INCR)
    15 continue
 c     final L loop
-      DO 80 LL=1,LPLUS
-      lf=LL-1
-      LLX=lf+lf
-      JLX=LLX+IS2
+      DO 80 LL=1,LPLUS  ! loop on Lb
+      lf=LL-1           ! Lb = momentum transfer
+      LLX=lf+lf         ! 2Lb
+      JLX=LLX+IS2       ! 2 Jb = 2Lb + 2sb  
       IF(JLX.LT.0) GO TO 75
       if(i_sym(2)) then
         if(phasef(lf).gt.0.0) then
@@ -579,20 +583,20 @@ c     final L loop
       else
         temp4=temp2
       endif      
-      TEMP4=temp4*SQRT(FLOAT(JLX+1))*float(llx+1)
-      if(igam2) then
+      TEMP4=temp4*SQRT(FLOAT(JLX+1))*float(llx+1)  ! sqrt(2Jb+1)*(2Lb+1), (d,p) : temp4 = 100 * sqrt((2sa+1)(2l+1)(2Jb+1)) (2Lb+1)
+      if(igam2) then ! skip by (d,p)
          temp4=temp4*sqrt(float(ll)/(float(lf)+1.e-6))
-     1              *(z(1)+za(1)*(-fm(1)/fma(1))**lf)
+     1              *(z(1)+za(1)*(-fm(1)/fma(1))**lf)  
       endif
-      LSTOR=lf*IFACT
+      LSTOR=lf*IFACT  ! num. of Lb * (2sa+1) * (2sb+1)
       LP1=IABS(LL-LTR-1)+1
       LP2=MIN0(LL+LTR,LPLUS)
       LK=0
 c     initial L loop
-      DO 60 LP=LP1,LP2,2
+      DO 60 LP=LP1,LP2,2 ! loop for La
       li=lp-1
-      LPX=LP+LP-2
-      JPX=LPX+IS1
+      LPX=LP+LP-2  ! 2La
+      JPX=LPX+IS1  ! 2Ja
       IF(JPX.GE.0) then
       if(i_sym(1)) then
         if(phasef(li).gt.0.0) then
@@ -607,8 +611,18 @@ c     initial L loop
          temp3=temp3*sqrt(float(lp)/(float(li)+1.e-6))
      1              *(z(2)+za(1)*(-fm(2)/fma(2))**li)
       endif
+
+c      write(6,*) LLX, isf, JLX, LX, ISB, JX, LPX, ISI, JPX
+
       TEMP=temp3*SQRT(FLOAT(LPX+1))*PHASEF((LP-LL-LTR)/2)
-     1    *VCC(LLX,LX,LPX,0,0)*WINEJ(LLX,isf,JLX,LX,ISB,JX,LPX,isi,JPX)
+     1    *VCC(LLX,LX,LPX,0,0)*WINEJ(LLX,isf,JLX,LX,ISB,JX,LPX,isi,JPX) ! WINEJ = 9j, VCC = CG-coeff
+c    (d,p) TEMP = temp4 * sqrt(2La+1) (-1)^{La - Lb - l} * CG[{Lb, 0}, {l, 0}, {La, 0}] * NineJ[everything is double]
+c    VCC = take 2*l, 2*s, 2*j, but compute CG[{l, m}, {s, ms}, {k, m+ms}]
+c      LLX,isf,JLX,LX,ISB,JX,LPX,isi,JPX
+c   -> 2Lb,2sb,2Jb,2l,2s ,2j,2La,2sa,2Ja
+c     TEMP = 100 * sqrt((2sa+1)(2l+1)(2Jb+1)) (2Lb+1) sqrt(2La+1) (-1)^{La - Lb - l} * CG[{Lb, 0}, {l, 0}, {La, 0}] * NineJ[everything is double]
+c 
+
       INDEX=LK+LL
       KT=0
 c      Initial state spins
@@ -617,7 +631,7 @@ c      Initial state spins
 c      Final   state spins
       MS =-IS(2)
       DO 55 MS2=1,JS
-      VCP=VCC(LPX,IS(1),JPX,0,MSP)
+      VCP=VCC(LPX,IS(1),JPX,0,MSP) ! CG[{La, 0}, {sa, ma}, {Ja, ma}] 
 c
       DO 50 M=1,MPLUS
       MK=M+M-1
@@ -625,11 +639,48 @@ c
       ML2=MSP-MX-MS
       ML=IABS(ML2/2)
       IF(ML.LE.lf) then
-        IND=LSTOR+KT+M
+        IND=LSTOR+KT+M ! 
+c
+c       LSTOR = l * num of total Ja, Jb states
+c       KT  = MPLUS state
+c
+c      write(6,*) LSTOR, KT, M, IND
+
         FACT=VCP*VCC(JLX,JX,JPX,MSP-MX,MX)*VCC(LLX,IS(2),JLX,ML2,MS)
      1      *SQRT(YXFCT(lf+ML,lf-ML))*TEMP
+c    MSP = 2ma
+c    MX = 2m
+c    MS = 2mb
+c    ML2 = 2(ma - m - mb)
+c    VCC(JLX,JX,JPX,MSP-MX,MX) = CG[{Jb, ma - m}, {j, m}, {Ja, ma}]
+c    VCC(LLX,IS(2),JLX,ML2,MS) = CG[{Lb, ma - m -mb}, {sb, mb}, {Jb, ma - m}] 
+c
+c    FACT = CG[{Jb, ma - m}, {j, m}, {Ja, ma}] * CG[{Lb, ma - m -mb}, {sb, mb}, {Jb, ma - m}]  * sqrt((Lb+abs(ma-m-mb)!/(Lb-abs(ma-m-mb)!) * TEMP
+c    temp = 100 * sqrt((2sa+1)(2l+1)(2Jb+1)) (2Lb+1) sqrt(2La+1) (-1)^{La - Lb - l} * CG[{Lb, 0}, {l, 0}, {La, 0}] * NineJ[everything is double]
+c
+
+c      write(6,5432) LPX/2.,JPX/2., LLX/2.,JLX/2.,
+c     1   MSP, MX, MS, TEMP, VCP, VCC(JLX,JX,JPX,MSP-MX,MX), 
+c     2   VCC(LLX,IS(2),JLX,ML2,MS), SQRT(YXFCT(lf+ML,lf-ML)),
+c     3   FACT, FLL(INDEX)
+c 5432 FORMAT(F5.1, F5.1, F5.1, F5.1, 
+c     1   I4, I4, I4, F15.6, F15.6, F15.6, F15.6, 
+c     2   F15.6, F15.6, F15.6, F15.6)
+
         D(IND)=D(IND)+FLL(INDEX)*FACT
       endif
+
+c      IND = (2sa+1)*(2sb+1) * (L+1) + (2sb+1)(ma+sa+1) + (mb+sb+1), loop from (-sa,-sb), (-sa, -sb+1), ...(-sa, sb), (-sa+1,-sb),....
+c      D(Lb, ma, mb, m), m > 0
+
+c      IF(IND.EQ.3) then
+c        write(6,8765) lf, LPX, JPX, LLX, JLX, MSP, ! l, La, Ja, Lb, Jb, ma, mb, m
+c     1      MS, MX, D(IND), FACT*FLL(INDEX), FACT, FLL(INDEX)
+c 8765 FORMAT(8I4, 7F15.7)
+c      ENDIF
+c
+c
+
    50 CONTINUE
       KT = KT+MPLUS
       MS =MS +2
@@ -645,6 +696,13 @@ c
    90 CONTINUE
       IS1=IS1+2
    95 CONTINUE
+
+c      write(6,*) "=============", IND
+c      DO 888 QQ=1,192
+c        write(6,*) QQ, D(QQ)
+c  888 CONTINUE
+
+
       RETURN
       END
 
@@ -702,7 +760,7 @@ c     initial state average factor for Gamma ray
         FACTA=sqrt(FACTR)
       endif
 c
-      M2K=(1.0-PHASEF(IS(3)))/2.0
+      M2K=(1.0-PHASEF(IS(3)))/2.0  ! PHASEF = (-1)^N
       NPLUS=(JTR+IS(1)+IS(2))/2+1
       MPLUS=JTR/2+1
       IFACT = MPLUS*JR*JS
@@ -737,6 +795,12 @@ c
       DO 40 LL=1,LPLUS
       ML1 =ML1 +1
       SUM1 = SUM1+D(IND)*PLM(ML1)
+
+c     sum only for j > m > 0
+c     SUM1 = sum( D(Lb, ma, mb, m) P(Lb, ma-m+mb, Cos(theta)), {ma, -sa, sa}, {mb, -sb, sb})
+
+c      write(6,*) MPLUS, IND, D(IND), ML1, PLM(ML1), SUM1
+
 C
 C     CALCULATE TOTAL INELASTIC SIGMA
 C
@@ -744,7 +808,7 @@ C
         L=LL-1
         ML = iabs(ML)
         if(ML.le.L) then
-          FACT = conjg(D(IND))*D(IND)*YXFCT(L-ML,L+ML)/FLOAT(2*L+1)
+          FACT = conjg(D(IND))*D(IND)*YXFCT(L-ML,L+ML)/FLOAT(2*L+1) !YXFCT = N!/M!
           IF(M2 .NE. 0) FACT=FACT*2.0
           TotSig=TotSig+FACT
         endif
@@ -757,6 +821,10 @@ C
         index2 = index2-1
         SUM(index2) = SUM1*PHAS2 *FACTA
       endif
+
+c      write(6,*) IS1, IS2, M, ML, SUM1, FACTA,
+c     1      index1, SUM(index1), index2, SUM(index2)
+
 c	if(nth.eq.2) write(*,'(a,4i3, 1p4e12.4)')
 c     1  ' Is2,Is1 M, ML :',is2,is1,M,ML,SUM(Index1),SUM(Index2)
       KT = KT+MPLUS

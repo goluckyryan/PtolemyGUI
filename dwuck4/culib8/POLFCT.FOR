@@ -125,6 +125,9 @@ c     Calculate Tensor polarization  =  <Sij(final)>
       endif
   140 continue
 c
+
+c      write(6,*) mp, m, my, mx, sr(mp, m, my, mx)
+
       Pol(1)  =Pol(1) + conjg(sr(mp,m ,my,mx)) * sr(mp,m ,my,mx)
       Pol(2)  =Pol(2) + conjg(sr(mp,m ,my,mx)) * a(mp,m )
       Pol(3)  =Pol(3) + conjg(sr(mp,m ,my,mx)) * b(mp,m )
