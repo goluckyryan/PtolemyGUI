@@ -11,3 +11,6 @@ IAEA_NuclearData.csv
 
 *.txt
 *.o
+
+*.in
+*.out

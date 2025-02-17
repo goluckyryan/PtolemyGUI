@@ -58,6 +58,10 @@ class IsotopeClass:
       return pd.DataFrame()
 
   def BreakDownName(self, ASym : str):
+    if ASym == "p" :
+      return [1, 'H']
+    if ASym == "d" :
+      return [2, 'H']
     match =  re.match(r'(\d+)(\D+)', ASym)
     return [int(match.group(1)), match.group(2) ]
 

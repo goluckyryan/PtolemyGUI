@@ -388,17 +388,21 @@ def plot_DistortWave(r_list, dw_real, dw_imag, title:str = ""):
 extract_LmaxSaSb() ## must be run first
 
 bs_data = extract_BoundState()
-plot_BoundState(bs_data)
+# plot_BoundState(bs_data)
 
-sAmpIn, sAmpOut = extract_ScatAmp()
-plot_SMatrix(sAmpIn, sa)
-plot_SMatrix(sAmpOut, sb)
+# sAmpIn, sAmpOut = extract_ScatAmp()
+# plot_SMatrix(sAmpIn, sa)
+# plot_SMatrix(sAmpOut, sb)
 
-elXsec_data = extract_ElasticXsec()
-plot_Xsec(elXsec_data)
+# elXsec_data = extract_ElasticXsec()
+# plot_Xsec(elXsec_data)
 
 xsec_data = extract_Xsec()
 plot_Xsec(xsec_data)
+
+x_data, y_data = xsec_data
+for i, r in enumerate(x_data):
+    print(f"{{{r:7.3f}, {y_data[i]:10.7f}}},")
 
 def plot_RadialMatrix2(ma:float, mb:float, isPlot:bool=True):
     str_a = f"+{int(2*ma):2.0f}/2"
@@ -470,7 +474,7 @@ def CalRadialIntgeral(L, ma, mb, isPlot:bool = True, verbose:int = 1):
             print(f"{i:3d} {bound:8.5f}, {rList[i]:4.1f}, {np.real(dw_a):8.5f}, {np.imag(dw_a):8.5f}, ({np.abs(dw_a):8.5f}), {np.real(dw_b):8.5f}, {np.imag(dw_b):8.5f} | {np.real(dw_a * dw_b * bound):9.6f}, {np.imag(dw_a * dw_b * bound):9.6f}")
 
     total = total * 0.1 * 17./16.
-    phase = np.exp( 1j * (CoulombPS(L, etaI)- CoulombPS(L, etaO)) )
+    phase = 1 #np.exp( 1j * (CoulombPS(L, etaI)- CoulombPS(L, etaO)) )
 
     if verbose >= 2:
         print("-------------------------")
@@ -481,20 +485,26 @@ def CalRadialIntgeral(L, ma, mb, isPlot:bool = True, verbose:int = 1):
     print(f"                            total : [{L}, {np.real(total):8.5f}, {np.imag(total):8.6f}]")
     print(f"                           DWUCK4 : {radmat[L]}")
 
-    # plt.figure(figsize=(8, 5))
-    # plt.plot(rList, prod_re, marker="o", linestyle="-", color="b", label="Real")
-    # plt.plot(rList, prod_im, marker="x", linestyle="-", color="r", label="Imag")
-    # plt.xlabel("L")
-    # plt.ylabel("Value")
-    # plt.title("Product of Radial")
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show(block=False)
+    plt.figure(figsize=(8, 5))
+    plt.plot(rList, prod_re, marker="o", linestyle="-", color="b", label="Real")
+    plt.plot(rList, prod_im, marker="x", linestyle="-", color="r", label="Imag")
+    plt.xlabel("L")
+    plt.ylabel("Value")
+    plt.title("Product of Radial")
+    plt.grid(True)
+    plt.legend()
+    plt.show(block=False)
 
     return total
 
-CalRadialIntgeral(3, 1, 0.5)
+# CalRadialIntgeral(3, 1, 0.5)
 
+
+# radMat = plot_RadialMatrix2(-1, -0.5, True)
+
+# for a in radMat:
+#     ll, real, imag = a
+#     print(f"{{{int(ll):2d}, {real:10.7f} + {imag:10.7f} I}},")
 
 #================================================ cal Radial matrix and Plot
 # radialIn = []
