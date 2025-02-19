@@ -8,7 +8,7 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
 from IAEANuclearData import IsotopeClass
 
-class Coulomb:
+class CoulombPotential:
   def __init__(self, rc):
     self.rc = rc
     self.id = 0
@@ -29,7 +29,7 @@ class Coulomb:
     else:
         return (self.Charge * self.ee) / (2 * self.Rc) * (3 - (x / self.Rc)**2)
 
-class WS:
+class WSPotential:
   def __init__(self, V0, r0, a0) :
     self.V0 = V0
     self.r0 = r0
@@ -45,7 +45,7 @@ class WS:
   def output(self, x):
     return self.V0/(1 + math.exp((x-self.R0)/self.a0))
 
-class SO:
+class SpinOrbitPotential:
   def __init__(self, VSO, rSO, aSO) :
     # the LS factor is put in the SolvingSE Class
     self.VSO = VSO
@@ -89,10 +89,8 @@ class SolvingSE:
   dr = 0.05
   nStep = 600*5
   rpos = np.arange(rStart, rStart+nStep*dr, dr)
-  SolU = []
+  SolU = [] # raidal wave function
   maxSolU = 0.0
-  WF = np.empty([nStep], dtype=float) # radial wave function
-  maxWF = 0.0
 
   #constant
   mn = 939.56539 #MeV/c2
@@ -111,8 +109,8 @@ class SolvingSE:
   potential_List = []
 
   def PrintInput(self):
-    print(f"     A : ({self.A:3d}, {self.ZA:3d})")
-    print(f"     a : ({self.a:3d}, {self.Za:3d})")
+    print(f"     A : ({self.A_A:3d}, {self.Z_A:3d})")
+    print(f"     a : ({self.A_a:3d}, {self.Z_a:3d})")
     print(f"  Elab : {self.Energy : 10.3f} MeV")
     print(f"    mu : {self.mu: 10.3f} MeV/c2")
 #    print(f"   Ecm : {self.Ecm: 10.3f} MeV")
@@ -125,10 +123,10 @@ class SolvingSE:
 
 
   def __init__(self, A, ZA, a, Za, Energy):
-    self.A = A
-    self.a = a
-    self.ZA = ZA
-    self.Za = Za
+    self.A_A = A
+    self.A_a = a
+    self.Z_A = ZA
+    self.Z_a = Za
     self.Z = ZA * Za
 
     self.sA = 0
@@ -139,14 +137,13 @@ class SolvingSE:
     self.J = 0
 
     haha = IsotopeClass()
-    self.mass_A = haha.GetMassFromAZ(self.A, self.ZA)
-    self.mass_a = haha.GetMassFromAZ(self.a, self.Za)
+    self.mass_A = haha.GetMassFromAZ(self.A_A, self.Z_A)
+    self.mass_a = haha.GetMassFromAZ(self.A_a, self.Z_a)
 
     #self.mu = (A * a)/(A + a) * self.amu
     self.mu = (self.mass_A * self.mass_a)/(self.mass_A + self.mass_a)
 
     self.Energy = Energy
-    self.Ecm = self.Energy
 #    self.E_tot = math.sqrt(math.pow((a+A)*self.amu,2) + 2 * A * self.amu * eng_Lab)
 #    self.Ecm = self.E_tot - (a + A) * self.amu
 #    self.k = math.sqrt(self.mu * 2 * abs(self.Ecm)) / self.hbarc
@@ -175,10 +172,7 @@ class SolvingSE:
     self.rStart = rStart
     self.dr  = dr
     self.nStep = nStep
-    self.WF=np.empty([nStep], dtype=float)
     self.rpos = np.arange(self.rStart, self.rStart+self.nStep*dr, self.dr)
-    self.WF = np.empty([self.nStep], dtype=float)
-    self.maxWF = 0.0
     self.SolU = []
     self.maxSolU = 0.0
 
@@ -189,15 +183,15 @@ class SolvingSE:
     if pot.id == 0:
       pot.setCharge(self.Z)
     if useBothMass:
-      pot.setAa(self.A, self.a)
+      pot.setAa(self.A_A, self.A_a)
     else:
-      pot.setA(self.A)
+      pot.setAa(self.A_A, 0)
     self.potential_List.append(pot)
 
   def __PotentialValue(self, x):
     value = 0
     for pot in self.potential_List:
-      if pot.id == 2:
+      if pot.id == 2 and self.L > 0:
         value = value + self.LS() * pot.output(x)
       else:
         value = value + pot.output(x)
@@ -240,7 +234,11 @@ class SolvingSE:
       self.SolU.append(y + dy)
       dSolU.append(z + dz)
 
-    return self.SolU
+      if abs(self.SolU[-1]) > self.maxSolU:
+        self.maxSolU = abs(self.SolU[-1])
 
-  def normalize_boundState(self):
-    pass
+    return self.SolU
+  
+  def NearestPosIndex(self, r):
+    return min(len(self.rpos)-1, int((r - self.rStart) / self.dr))
+
