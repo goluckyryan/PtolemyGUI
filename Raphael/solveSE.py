@@ -89,7 +89,7 @@ class SolvingSE:
   dr = 0.05
   nStep = 600*5
   rpos = np.arange(rStart, rStart+nStep*dr, dr)
-  SolU = [] # raidal wave function
+  solU = [] # raidal wave function
   maxSolU = 0.0
 
   #constant
@@ -199,7 +199,7 @@ class SolvingSE:
     self.dr  = dr
     self.nStep = nStep
     self.rpos = np.arange(self.rStart, self.rStart+self.nStep*dr, self.dr)
-    self.SolU = []
+    self.solU = []
     self.maxSolU = 0.0
 
   def ClearPotential(self):
@@ -237,7 +237,7 @@ class SolvingSE:
   # Using Rungu-Kutta 4th method to solve u''[r] = G[r, u[r], u'[r]]
   def SolveByRK4(self):
     #initial condition
-    self.SolU = [self.solu0]
+    self.solU = [self.solu0]
     dSolU = [self.dsolu0]
 
     dyy = np.array([1., 0., 0., 0., 0.], dtype= complex)
@@ -247,7 +247,7 @@ class SolvingSE:
 
     for i in range(self.nStep-1):
       r = self.rStart + self.dr * i
-      y = self.SolU[i]
+      y = self.solU[i]
       z = dSolU[i]
 
       for j in range(4):
@@ -257,13 +257,13 @@ class SolvingSE:
       dy = sum(self.parD[j] * dyy[j + 1] for j in range(4))
       dz = sum(self.parD[j] * dzz[j + 1] for j in range(4))
 
-      self.SolU.append(y + dy)
+      self.solU.append(y + dy)
       dSolU.append(z + dz)
 
-      if np.real(self.SolU[-1]) > self.maxSolU:
-        self.maxSolU = abs(self.SolU[-1])
+      if np.real(self.solU[-1]) > self.maxSolU:
+        self.maxSolU = abs(self.solU[-1])
 
-    return self.SolU
+    return self.solU
   
   def NearestPosIndex(self, r):
     return min(len(self.rpos)-1, int((r - self.rStart) / self.dr))
