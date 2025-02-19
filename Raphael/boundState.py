@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from solveSE import WSPotential, CoulombPotential, SpinOrbitPotential,  SolvingSE
+from solveSE import WoodsSaxonPot, CoulombPotential, SpinOrbit_Pot,  SolvingSE
 
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
@@ -12,22 +12,14 @@ import mpmath
 
 mpmath.mp.dps = 15  # Decimal places of precision
 
-def SevenPointsSlope(data, n):
-  return (-data[n + 3] + 9 * data[n + 2] - 45 * data[n + 1] + 45 * data[n - 1] - 9 * data[n - 2] + data[n - 3]) / 60
-
-
 class BoundState(SolvingSE):
   def __init__(self, A, ZA, a, Za, node,  L, J, BE):
     super().__init__(A, ZA, a, Za, BE)
-    self.Ecm = BE
-    self.BE = BE
-
+    self.CalCMConstants( True)
     self.SetRange(0, 0.1, 300) # default range
-    self.PrintInput()
-
-    self.node = node # number of nodes of the wave function r > 0
     self.SetLJ(L, J)
-
+    self.PrintInput()
+    self.node = node # number of nodes of the wave function r > 0
     self.FoundBounfState = False
 
   def SetPotential(self, r0, a0, Vso, rso, aso, rc = 0.0):
@@ -38,8 +30,8 @@ class BoundState(SolvingSE):
     self.aso = aso
     self.rc = rc
     self.ClearPotential()
-    self.AddPotential(WSPotential(-60, r0, a0), False) # not use mass number of a
-    self.AddPotential(SpinOrbitPotential(Vso, rso, aso), False) # not use mass number of a
+    self.AddPotential(WoodsSaxonPot(-60, r0, a0), False) # not use mass number of a
+    self.AddPotential(SpinOrbit_Pot(Vso, rso, aso), False) # not use mass number of a
     if rc > 0 and self.Z_a > 0:
       self.AddPotential(CoulombPotential(rc), False) # not use mass number of a
 
@@ -50,8 +42,8 @@ class BoundState(SolvingSE):
     maxLastSolU = 0
     for V0 in V0List:
       self.ClearPotential()
-      self.AddPotential(WSPotential(V0, self.r0, self.a0), False)
-      self.AddPotential(SpinOrbitPotential(self.Vso, self.rso, self.aso), False) # not use mass number of a
+      self.AddPotential(WoodsSaxonPot(V0, self.r0, self.a0), False)
+      self.AddPotential(SpinOrbit_Pot(self.Vso, self.rso, self.aso), False) # not use mass number of a
       if self.rc > 0 and self.Z_a > 0:
         self.AddPotential(CoulombPotential(self.rc), False)
       wf = self.SolveByRK4()
@@ -62,16 +54,16 @@ class BoundState(SolvingSE):
         maxLastSolU = lastSolU[-1]
 
     if minLastSolU >= 0 or maxLastSolU <= 0:
-        print("No bound state found in the range")
-        print("min Last SolU = ", minLastSolU)
-        print("max Last SolU = ", maxLastSolU)
-        plt.plot(V0List, lastSolU, marker="x")
-        plt.grid()
-        plt.xlabel('V0 (MeV)')
-        plt.show(block=False)
-        input("Press Enter to exit.")
+      print("No bound state found in the range")
+      print("min Last SolU = ", minLastSolU)
+      print("max Last SolU = ", maxLastSolU)
+      plt.plot(V0List, lastSolU, marker="x")
+      plt.grid()
+      plt.xlabel('V0 (MeV)')
+      plt.show(block=False)
+      input("Press Enter to exit.")
 
-        return
+      return
 
     f = interp1d(lastSolU, V0List, kind='cubic')
     self.V_BS = f(0)
@@ -79,8 +71,8 @@ class BoundState(SolvingSE):
 
     # recaluclate the wave function for V_BS
     self.ClearPotential()
-    self.AddPotential(WSPotential(self.V_BS, self.r0, self.a0), False)
-    self.AddPotential(SpinOrbitPotential(self.Vso, self.rso, self.aso), False) # not use mass number of a
+    self.AddPotential(WoodsSaxonPot(self.V_BS, self.r0, self.a0), False)
+    self.AddPotential(SpinOrbit_Pot(self.Vso, self.rso, self.aso), False) # not use mass number of a
     if self.rc > 0 and self.Z_a > 0:
       self.AddPotential(CoulombPotential(self.rc), False)
 
@@ -109,7 +101,7 @@ class BoundState(SolvingSE):
     self.wf[1:] = self.SolU[1:] / self.rpos[1:]
     self.wf[0] = self.SolU[0]  # Handle the first element separately if needed
 
-    #extrapolate wf from 0.2, 0.1 to 0.0
+    #extrapolate wf with quadrotic from 0.2, 0.1 to 0.0
     def func(x, a, b, c):
         return a * x**2 + b * x + c
     popt, pcov = curve_fit(func, self.rpos[1:6], self.wf[1:6])
@@ -117,18 +109,15 @@ class BoundState(SolvingSE):
     
     if isPathWhittaker:
       # patch the long range function to Whittaker function
-      kappa = np.sqrt(2*self.mu*np.abs(self.BE))/self.hbarc
-      charge = self.Z
-      self.eta = kappa * charge * self.ee / 2 / self.BE
-
       R = min(self.r0 * (pow(self.A_A, 1/3) + pow(self.A_a, 1/3)) + 5 * self.a0, max(self.rpos))
       rIndex = self.NearestPosIndex(R)
       print(f"replacing wave function with Whittaker after R : {R:5.1f}, index : {rIndex}")
       if rIndex < len(self.rpos):
         R = self.rpos[rIndex]
-        W_values = [float(whitw(-1j*self.eta, self.L + 0.5,  2*kappa * r))/(kappa * r) for r in self.rpos]
+        W_values = [np.real(whitw(-1j*self.eta, self.L + 0.5,  2*self.k * r))/(self.k * r) for r in self.rpos[1:]]
+        W_values.insert(0, 0)
 
-        self.ANC = self.wf[rIndex] / W_values[rIndex]
+        self.ANC = float(self.wf[rIndex] / W_values[rIndex])
         print(f"ANC : {self.ANC:10.6e}")
         self.wf[rIndex:] = self.ANC * np.array(W_values[rIndex:])
 

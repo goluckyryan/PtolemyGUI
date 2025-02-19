@@ -62,10 +62,26 @@ class IsotopeClass:
       return [1, 'H']
     if ASym == "d" :
       return [2, 'H']
+    if ASym == "t" :
+      return [3, 'H']
+    if ASym == "h" :
+      return [3, 'He']
+    if ASym == "a" :
+      return [4, 'He']
     match =  re.match(r'(\d+)(\D+)', ASym)
     return [int(match.group(1)), match.group(2) ]
 
   def GetAZ(self, ASym : str):
+    if ASym == "p" :
+      return [1, 1]
+    if ASym == "d" :
+      return [2, 1]
+    if ASym == "t" :
+      return [3, 1]
+    if ASym == "h" :
+      return [3, 2]
+    if ASym == "a" :
+      return [3, 2]
     [A, sym] = self.BreakDownName(ASym)
     try:
       dudu = self.data[(self.data['symbol']==sym) & (self.data['A']==A)]
@@ -116,6 +132,13 @@ class IsotopeClass:
     [A, sym] = self.BreakDownName(ASym)
     try:
       dudu = self.data[(self.data['symbol']==sym) & (self.data['A']==A)]
+      return dudu['jp'].iloc[0]
+    except:
+      return "unknown"
+  
+  def GetJpi(self, A : int, Z : int):
+    try:
+      dudu = self.data[(self.data['z']==Z) & (self.data['A']==A)]
       return dudu['jp'].iloc[0]
     except:
       return "unknown"

@@ -2,7 +2,7 @@
 
 import math
 import numpy as np
-
+import re
 import sys, os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
@@ -29,7 +29,7 @@ class CoulombPotential:
     else:
         return (self.Charge * self.ee) / (2 * self.Rc) * (3 - (x / self.Rc)**2)
 
-class WSPotential:
+class WoodsSaxonPot:
   def __init__(self, V0, r0, a0) :
     self.V0 = V0
     self.r0 = r0
@@ -45,7 +45,7 @@ class WSPotential:
   def output(self, x):
     return self.V0/(1 + math.exp((x-self.R0)/self.a0))
 
-class SpinOrbitPotential:
+class SpinOrbit_Pot:
   def __init__(self, VSO, rSO, aSO) :
     # the LS factor is put in the SolvingSE Class
     self.VSO = VSO
@@ -65,7 +65,7 @@ class SpinOrbitPotential:
     else :
       return 4*1e+19
 
-class WSSurface:
+class WS_SurfacePot:
   def __init__(self, V0, r0, a0):
     self.V0 = V0
     self.r0 = r0
@@ -80,7 +80,7 @@ class WSSurface:
 
   def output(self, x):
     exponent = (x - self.R0) / self.a0
-    return self.V0 * math.exp(exponent) / (1 + math.exp(exponent))**2
+    return 4* self.V0 * math.exp(exponent) / (1 + math.exp(exponent))**2
 
 #========================================
 class SolvingSE:
@@ -109,52 +109,78 @@ class SolvingSE:
   potential_List = []
 
   def PrintInput(self):
-    print(f"     A : ({self.A_A:3d}, {self.Z_A:3d})")
-    print(f"     a : ({self.A_a:3d}, {self.Z_a:3d})")
-    print(f"  Elab : {self.Energy : 10.3f} MeV")
-    print(f"    mu : {self.mu: 10.3f} MeV/c2")
-#    print(f"   Ecm : {self.Ecm: 10.3f} MeV")
-#    print(f"     k : {self.k: 10.3f} MeV/c")
-#    print(f"   eta : {self.eta: 10.3f}")
-#    print(f"     L : {self.L},  maxL : {self.maxL}")
+    print(f"     A : ({self.A_A:3d}, {self.Z_A:3d}), spin : {self.spin_A},")
+    print(f"     a : ({self.A_a:3d}, {self.Z_a:3d}), spin : {self.spin_a},")
+    print(f"  Elab : {self.Energy : 10.5f} MeV")
+    print(f"    mu : {self.mu: 10.5f} MeV/c2")
+    print(f"   Ecm : {self.Ecm: 10.5f} MeV")
+    print(f"     k : {self.k: 10.5f} MeV/c")
+    print(f"   eta : {self.eta: 10.5f}")
+    print(f"     L : {self.L},  maxL : {self.maxL}")
     print(f"    dr : {self.dr} fm, nStep : {self.nStep}")
     print(f"rStart : {self.rStart} fm,  rMax : {self.nStep * self.dr} fm")
-    print(f"spin-A : {self.sA}, spin-a : {self.sa} ")
 
+  def __init__(self, A_or_SymA = None, ZA_or_Syma = None \
+               , a_or_ELabPerA = None, Za_or_none = None, ELabPerA_or_none = None):
+    if Za_or_none is None :
+      self.ConstructUsingSymbol(A_or_SymA, ZA_or_Syma, a_or_ELabPerA)
+    else:
+      self.ConstructUsingAZ(A_or_SymA, ZA_or_Syma, a_or_ELabPerA, Za_or_none, ELabPerA_or_none)
 
-  def __init__(self, A, ZA, a, Za, Energy):
+    haha = IsotopeClass()
+    self.mass_A = haha.GetMassFromAZ(self.A_A, self.Z_A)
+    self.mass_a = haha.GetMassFromAZ(self.A_a, self.Z_a)
+    self.spin_A = float(eval(re.sub(r'[+-]', '', haha.GetJpi(self.A_A, self.Z_A))))
+    self.spin_a = float(eval(re.sub(r'[+-]', '', haha.GetJpi(self.A_a, self.Z_a))))
+    self.S = self.spin_a
+
+    self.mu = (self.mass_A * self.mass_a)/(self.mass_A + self.mass_a)
+    self.Ecm = 0.0
+
+  def ConstructUsingAZ(self, A, ZA, a, Za, ELabPerA):
+    print(f"ConstructUsingAZ : {A}, {ZA}, {a}, {Za}, {ELabPerA}")
     self.A_A = A
     self.A_a = a
     self.Z_A = ZA
     self.Z_a = Za
     self.Z = ZA * Za
 
-    self.sA = 0
-    self.sa = 0
+    self.L = 0
+    self.S = 0
+    self.J = 0
+    self.Energy = ELabPerA
 
+  def ConstructUsingSymbol(self, Sym_A, Sym_a, ELabPerA):
+    print(f"ConstructUsingSymbol : {Sym_A}, {Sym_a}, {ELabPerA}")
     self.L = 0
     self.S = 0
     self.J = 0
 
     haha = IsotopeClass()
-    self.mass_A = haha.GetMassFromAZ(self.A_A, self.Z_A)
-    self.mass_a = haha.GetMassFromAZ(self.A_a, self.Z_a)
+    self.A_A, self.Z_A = haha.GetAZ(Sym_A)
+    self.A_a, self.Z_a = haha.GetAZ(Sym_a)
+    self.Z = self.Z_A * self.Z_a
+    self.Energy = ELabPerA
 
-    #self.mu = (A * a)/(A + a) * self.amu
-    self.mu = (self.mass_A * self.mass_a)/(self.mass_A + self.mass_a)
 
-    self.Energy = Energy
-#    self.E_tot = math.sqrt(math.pow((a+A)*self.amu,2) + 2 * A * self.amu * eng_Lab)
-#    self.Ecm = self.E_tot - (a + A) * self.amu
-#    self.k = math.sqrt(self.mu * 2 * abs(self.Ecm)) / self.hbarc
-#    self.eta = self.Z * self.ee * math.sqrt( self.mu/2/self.Ecm ) / self.hbarc
+  def CalCMConstants(self, useELabAsEcm = False):
+    if useELabAsEcm:
+      self.E_tot = self.Energy # total energy in CM
+      self.Ecm = self.Energy # KE in cm
+    else:
+      self.E_tot = math.sqrt(math.pow((self.mass_a+self.mass_A),2) + 2 * self.mass_A * self.Energy)
+      self.Ecm = self.E_tot - (self.mass_a + self.mass_A) 
+    
+    self.k = math.sqrt(self.mu * 2 * abs(self.Ecm)) / self.hbarc
+    if self.Z == 0 :
+      self.eta = 0
+    else:
+      self.eta = self.Z * self.ee * self.k /2 /self.Ecm
+    self.maxL = int(self.k * (1.4 * (self.A_A**(1/3) + self.A_a**(1/3)) + 5))
 
-#    self.maxL = int(self.k * (1.4 * (self.A**(1/3) + self.a**(1/3)) + 3))
-
-  def SetSpin(self, sA, sa):
-    self.sA = sA
-    self.sa = sa
-    self.S = self.sa
+  # def SetA_ExSpin(self, ExA, sA ):
+  #   self.ExA = ExA
+  #   self.spin_A = sA
 
   def SetLJ(self, L, J):
     self.L = L
@@ -234,7 +260,7 @@ class SolvingSE:
       self.SolU.append(y + dy)
       dSolU.append(z + dz)
 
-      if abs(self.SolU[-1]) > self.maxSolU:
+      if np.real(self.SolU[-1]) > self.maxSolU:
         self.maxSolU = abs(self.SolU[-1])
 
     return self.SolU
