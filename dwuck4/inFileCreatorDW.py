@@ -24,7 +24,6 @@ from IAEANuclearData import IsotopeClass
 #####################################################
 import numpy as np
 import re
-import numpy as np
 import matplotlib.pyplot as plt
 
 # Woods-Saxon
@@ -317,7 +316,7 @@ with open(fileOutName, "w") as file:
     file.write(f"{asoi:+08.4f}\n") # 
 #===== Block 6
     if A_a == 2 :
-        Koning(A_B, Z_B, A_a*ELab + Q_value - Ex, Z_a)
+        Koning(A_B, Z_B, A_a*ELab + Q_value - Ex, Z_b)
     else:
         AnCai(A_B, Z_B, A_a*ELab + Q_value - Ex)
     file.write(f"{Q_value:+08.4f}")

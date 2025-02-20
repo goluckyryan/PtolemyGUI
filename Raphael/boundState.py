@@ -77,7 +77,7 @@ class BoundState(SolvingSE):
       self.AddPotential(CoulombPotential(self.rc), False)
 
     self.SolveByRK4()
-    self.SolU = np.real(self.SolU)
+    self.solU = np.real(self.solU)
 
     # find number of node in self.SolU with in to potenital range
     # find how many time self.SolU change sign
@@ -85,7 +85,7 @@ class BoundState(SolvingSE):
     for i, r  in enumerate(self.rpos):
       if r > self.r0 * (pow(self.A_A, 1/3) + pow(self.A_a, 1/3)) + 5 * self.a0:
         break
-      if self.SolU[i] * self.SolU[i-1] < 0:
+      if self.solU[i] * self.solU[i-1] < 0:
         detNode += 1
 
     if detNode != self.node:
@@ -95,11 +95,11 @@ class BoundState(SolvingSE):
     self.FoundBounfState = True
 
     # normalize the wave function
-    norm = simpson(self.SolU**2) * self.dr
-    self.SolU /= np.sqrt(norm)
-    self.wf = np.zeros_like(self.SolU)
-    self.wf[1:] = self.SolU[1:] / self.rpos[1:]
-    self.wf[0] = self.SolU[0]  # Handle the first element separately if needed
+    norm = simpson(self.solU**2) * self.dr
+    self.solU /= np.sqrt(norm)
+    self.wf = np.zeros_like(self.solU)
+    self.wf[1:] = self.solU[1:] / self.rpos[1:]
+    self.wf[0] = self.solU[0]  # Handle the first element separately if needed
 
     #extrapolate wf with quadrotic from 0.2, 0.1 to 0.0
     def func(x, a, b, c):
@@ -123,7 +123,7 @@ class BoundState(SolvingSE):
 
   def PlotBoundState(self, maker=None):
     if not self.FoundBounfState:
-      plt.plot(self.rpos[1:], self.SolU[1:]/self.rpos[1:])
+      plt.plot(self.rpos[1:], self.solU[1:]/self.rpos[1:])
     else:
       if maker is None:
         plt.plot(self.rpos, self.wf)
