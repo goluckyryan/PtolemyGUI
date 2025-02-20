@@ -9,6 +9,7 @@ import numpy as np
 from scipy.special import gamma, sph_harm, factorial
 import matplotlib.pyplot as plt
 
+from assLegendreP import associated_legendre_array
 
 def SevenPointsSlope(data, n):
   return (-data[n + 3] + 9 * data[n + 2] - 45 * data[n + 1] + 45 * data[n - 1] - 9 * data[n - 2] + data[n - 3]) / 60
@@ -29,6 +30,7 @@ def KroneckerDelta(i, j):
   else:
     return 0
 
+############################################################
 class DistortedWave(SolvingSE):
   def __init__(self, target, projectile, ELab):
     super().__init__(target, projectile, ELab)
@@ -37,6 +39,8 @@ class DistortedWave(SolvingSE):
 
     self.ScatMatrix = []
     self.distortedWaveU = []
+
+    self.legendreArray = []
 
   def SetLJ(self, L, J):
     self.L = L
@@ -105,9 +109,15 @@ class DistortedWave(SolvingSE):
 
   def PrintScatteringMatrix(self):
     for L in range(0, len(self.ScatMatrix)):
+      print("{", end="")
       for i in range(0, len(self.ScatMatrix[L])):
-        print(f"{{{L:2d},{i-self.S:4.1f}, {np.real(self.ScatMatrix[L][i]):10.6f} +  {np.imag(self.ScatMatrix[L][i]):10.6f}I}}", end=" ")
-      print()
+        print("{", end="")
+        print(f"{L:2d},{L+i-self.S:4.1f}, {np.real(self.ScatMatrix[L][i]):10.6f} +  {np.imag(self.ScatMatrix[L][i]):10.6f}I", end="")
+        if i < len(self.ScatMatrix[L])-1 :
+          print("}, ", end="")
+        else:
+          print("}", end="")
+      print("},")
 
   def GetScatteringMatrix(self, L, J):
     return self.ScatMatrix[L][J-L+self.S]
@@ -152,15 +162,15 @@ class DistortedWave(SolvingSE):
     plt.show(block=False)
     input("Press Enter to continue...")
 
-  def RutherFord(self, theta):
-    sin_half_theta = np.sin(theta / 2)
+  def RutherFord(self, theta_deg):
+    sin_half_theta = np.sin(np.radians(theta_deg + 1e-20) / 2)
     result = self.eta**2 / (4 * (self.k**2) * (sin_half_theta**4))
     return result
 
   def CoulombScatterintAmp(self, theta_deg):
-    sin_sq = pow(np.sin(np.radians(theta_deg)/2), 2)
+    sin_sq = pow(np.sin(np.radians(theta_deg + 1e-20)/2), 2)
     coulPS = self.CoulombPhaseShift(0)
-    return - self.eta/ (2*self.k*sin_sq) * np.exp(2j*(coulPS - self.eta*np.log(sin_sq)))
+    return - self.eta / (2 * self.k * sin_sq) * np.exp(1j * (2*coulPS - self.eta * np.log(sin_sq)))
   
   def GMatrix1Spin(self, v, v0, l ) -> complex:
     if self.S == 0 :
@@ -175,7 +185,21 @@ class DistortedWave(SolvingSE):
 
       return value - KroneckerDelta(v, v0)
 
-  def NuclearScatteringAmp(self, v, v0, theta, phi, maxL = None ) -> complex:
+  def CalLegendre(self, theta_deg, maxL = None, maxM = None):
+    if maxL is None:
+      maxL = self.maxL
+    if maxM is None:
+      maxM = int(2*self.S)
+    self.legendreArray = associated_legendre_array(maxL, maxM, theta_deg)
+    return self.legendreArray
+
+  def GetPreCalLegendre(self, L, M):
+    if abs (M) <= int(2*self.S):
+      return self.legendreArray[L][int(abs(M))]
+    else :
+      return 0
+
+  def NuclearScatteringAmp(self, v, v0, maxL = None ) -> complex:
     value = 0
     if maxL is None:
       maxL = self.maxL
@@ -184,21 +208,24 @@ class DistortedWave(SolvingSE):
         value += 0
       else:
         coulPS = self.CoulombPhaseShift(l)
-        value += np.sqrt(2*l+1) * sph_harm(v0 - v, l, phi, theta) * np.exp(2j * coulPS)* self.GMatrix1Spin(v, v0, l)
+        fact = pow(-1, v0-v) * np.sqrt(factorial(l - abs(v0-v))/factorial(l + abs(v0-v)))
+        value += (2*l+1) * fact * self.GetPreCalLegendre(l, v0-v) * np.exp(2j * coulPS)* self.GMatrix1Spin(v, v0, l)
 
-    return value * np.sqrt(4*np.pi)/ 2 / 1j / self.k
-
-  def DCSUnpolarized(self, theta, phi, maxL = None):
+    return value / 2j / self.k
+  
+  def DCSUnpolarized(self, theta_deg, maxL = None):
     value = 0
+    self.CalLegendre(theta_deg)
+    jaja = self.CoulombScatterintAmp(theta_deg)
     for v in np.arange(-self.S, self.S + 1, 1):
       for v0 in np.arange(-self.S, self.S + 1, 1):
-        value += abs(self.CoulombScatterintAmp(theta) * KroneckerDelta(v, v0) +  self.NuclearScatteringAmp(v, v0, theta, phi, maxL))**2
+        value += abs( jaja * KroneckerDelta(v, v0) +  self.NuclearScatteringAmp(v, v0, maxL))**2
 
-    value = value / (2 * self.S + 1)
+    value = value / (2 * self.S + 1) 
     return value
 
   def PlotDCSUnpolarized(self, thetaRange = 180, thetaStepDeg = 0.2, maxL = None):
-    theta_values = np.linspace(0, thetaRange, int(thetaRange/thetaStepDeg))
+    theta_values = np.linspace(0, thetaRange, int(thetaRange/thetaStepDeg)+1)
 
     thetaTick = 30
     if thetaRange < 180:
@@ -206,22 +233,21 @@ class DistortedWave(SolvingSE):
 
     y_values = []
     for theta in theta_values:
-      theta = np.deg2rad(theta)
       if theta == 0:
         y_values.append(1)
       else:
-        y_values.append(self.DCSUnpolarized(theta , 0, maxL)/ self.RutherFord(theta))
-      print(f"{np.rad2deg(theta):6.2f}, {y_values[-1]:10.6f}")
+        y_values.append(self.DCSUnpolarized(theta, maxL)/ self.RutherFord(theta))
+        print(f"{theta:6.2f}, {y_values[-1]:10.6f}")
 
     plt.figure(figsize=(8, 6))
-    plt.plot(theta_values, y_values, marker='o', linestyle='-', color='blue', label='Real Part')    
+    # plt.plot(theta_values, y_values, marker='o', linestyle='-', color='blue')    
+    plt.plot(theta_values, y_values, linestyle='-', color='blue')
     plt.title("Differential Cross Section (Unpolarized)")
-    plt.xlabel("Theta (degrees)")
-    plt.ylabel("Value")
+    plt.xlabel("Angle [deg]")
+    plt.ylabel("D.C.S / Ruth")
     plt.yscale("log")
     plt.xticks(np.arange(0, thetaRange + 1, thetaTick))
     plt.xlim(0, thetaRange)
-    plt.legend()
     plt.grid()
     plt.show(block=False)
     input("Press Enter to continue...")
