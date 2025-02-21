@@ -5,22 +5,22 @@ from boundState import BoundState
 from solveSE import WoodsSaxonPot, CoulombPotential, SpinOrbit_Pot, WS_SurfacePot
 import matplotlib.pyplot as plt
 
-boundState = BoundState(16, 8, 1, 0, 1, 0, 0.5, -3.273)
-boundState.SetPotential(1.25, 0.65, -6, 1.10, 0.65, 1.30)
-boundState.FindPotentialDepth(-75, -40, 0.1)
-# boundState.PrintWF()
-boundState.PlotBoundState()
+# boundState = BoundState(16, 8, 1, 0, 1, 0, 0.5, -3.273)
+# boundState.SetPotential(1.25, 0.65, -6, 1.10, 0.65, 1.30)
+# boundState.FindPotentialDepth(-75, -40, 0.1)
+# # boundState.PrintWF()
+# boundState.PlotBoundState()
 
-exit()
+# exit()
 
 from distortedWave import DistortedWave
 
-# dw = DistortedWave("60Ni", "p", 30)
-# dw.ClearPotential()
-# dw.AddPotential(WoodsSaxonPot(-47.937-2.853j, 1.20, 0.669), False)
-# dw.AddPotential(WS_SurfacePot(-6.878j, 1.28, 0.550), False)
-# dw.AddPotential(SpinOrbit_Pot(-5.250 + 0.162j, 1.02, 0.590), False)
-# dw.AddPotential(CoulombPotential(1.258), False)
+dw = DistortedWave("60Ni", "p", 30)
+dw.ClearPotential()
+dw.AddPotential(WoodsSaxonPot(-47.937-2.853j, 1.20, 0.669), False)
+dw.AddPotential(WS_SurfacePot(-6.878j, 1.28, 0.550), False)
+dw.AddPotential(SpinOrbit_Pot(-5.250 + 0.162j, 1.02, 0.590), False)
+dw.AddPotential(CoulombPotential(1.258), False)
 
 # dw = DistortedWave("60Ni", "d", 60)
 # dw.PrintInput()
@@ -32,10 +32,12 @@ from distortedWave import DistortedWave
 # dw.AddPotential(CoulombPotential(1.303), False)
 
 
-# dw.CalScatteringMatrix()
+dw.CalScatteringMatrix()
 # dw.PrintScatteringMatrix()
 
-# dw.PlotDCSUnpolarized(180, 1)
+dw.PlotDCSUnpolarized(180, 1)
+
+exit()
 
 # for i in range(1, 19):
 #   theta = 10*i

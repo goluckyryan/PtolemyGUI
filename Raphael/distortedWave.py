@@ -17,18 +17,20 @@ def SevenPointsSlope(data, n):
 def FivePointsSlope(data, n):
   return ( data[n + 2] - 8 * data[n + 1] + 8 * data[n - 1] -  data[n - 2] ) / 12
 
-from sympy.physics.quantum.cg import CG
-from sympy import S
-def clebsch_gordan(j1, m1, j2, m2, j, m):
-    cg = CG(S(j1), S(m1), S(j2), S(m2), S(j), S(m))
-    result = cg.doit()
-    return np.complex128(result)
+# from sympy.physics.quantum.cg import CG
+# from sympy import S
+# def clebsch_gordan(j1, m1, j2, m2, j, m):
+#     cg = CG(S(j1), S(m1), S(j2), S(m2), S(j), S(m))
+#     result = cg.doit()
+#     return np.complex128(result)
 
 def KroneckerDelta(i, j):
   if i == j:
     return 1
   else:
     return 0
+  
+from clebschGordan import clebsch_gordan
 
 ############################################################
 class DistortedWave(SolvingSE):
@@ -181,8 +183,9 @@ class DistortedWave(SolvingSE):
       value = 0
       for J in  np.arange(Jmin, Jmax + 1, 1):
         index = int(J - Jmin)
-        value += clebsch_gordan(l, 0, self.S, v0, J, v0) * clebsch_gordan(l, v0-v, self.S, v, J, v0) * self.ScatMatrix[l][index]
-
+        cg1 = clebsch_gordan(l, 0, self.S, v0, J, v0)
+        cg2 = clebsch_gordan(l, v0 - v, self.S, v, J, v0)
+        value += cg1 * cg2 * self.ScatMatrix[l][index]
       return value - KroneckerDelta(v, v0)
 
   def CalLegendre(self, theta_deg, maxL = None, maxM = None):
@@ -224,7 +227,7 @@ class DistortedWave(SolvingSE):
     value = value / (2 * self.S + 1) 
     return value
 
-  def PlotDCSUnpolarized(self, thetaRange = 180, thetaStepDeg = 0.2, maxL = None):
+  def PlotDCSUnpolarized(self, thetaRange = 180, thetaStepDeg = 0.2, maxL = None, verbose = False):
     theta_values = np.linspace(0, thetaRange, int(thetaRange/thetaStepDeg)+1)
 
     thetaTick = 30
@@ -237,7 +240,8 @@ class DistortedWave(SolvingSE):
         y_values.append(1)
       else:
         y_values.append(self.DCSUnpolarized(theta, maxL)/ self.RutherFord(theta))
-        print(f"{theta:6.2f}, {y_values[-1]:10.6f}")
+        if verbose :
+          print(f"{theta:6.2f}, {y_values[-1]:10.6f}")
 
     plt.figure(figsize=(8, 6))
     # plt.plot(theta_values, y_values, marker='o', linestyle='-', color='blue')    
