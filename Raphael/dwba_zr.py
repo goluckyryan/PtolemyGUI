@@ -258,7 +258,7 @@ class DWBA_ZR:
             self.radialInt[L1][index1][indexL2][index2] = integral * pf1 * pf2
 
     stop_time = time.time()
-    print(f"Total time for radial intergal {(stop_time - start_time) * 1000:.2f} msec")
+    print(f"Total time for distorted wave and radial intergal {(stop_time - start_time) * 1000:.2f} msec")
 
   def PlotRadialIntegral(self):
     if self.radialInt is None:
@@ -266,7 +266,7 @@ class DWBA_ZR:
       return
     spin_b = self.spin_b
     spin_a = self.spin_a
-    l = int(self.l)
+    l = self.l
     maxL = self.maxL
 
     fig, axes = plt.subplots(int(2*spin_b+1)*int(2*l+1), int(2*spin_a+1), figsize=(6*int(2*spin_a+1), 4*int(2*spin_b+1)*int(2*l+1)))
@@ -356,7 +356,7 @@ class DWBA_ZR:
             fact3 = clebsch_gordan(J2, mb-m,      self.j, m-mb+ma, J1,   ma)
             fact4 = clebsch_gordan(L1,    0, self.spin_a,      ma, J1,   ma)
             fact5 = clebsch_gordan(L2,   -m, self.spin_b,      mb, J2, mb-m)
-            fact6 = clebsch_gordan(L1,    0, int(self.l),       0, L2,    0)
+            fact6 = clebsch_gordan(L1,    0,      self.l,       0, L2,    0)
             return fact0 * fact1 * fact2 * fact3 * fact4 * fact5 * fact6
 
   def Beta(self, m:int, ma, mb):
@@ -419,14 +419,16 @@ class DWBA_ZR:
     self.angMax = angMax
     self.angList = []
     self.angDist = []
-    print(f"======== Calcalating Angular distribution from {angMin:.1f} to {angMax:1.f}, step {angStep:.1f}...")
+    print(f"======== Calcalating Angular distribution from {angMin:.1f} to {angMax:.1f}, step {angStep:.1f}...")
     start_time = time.time()
+    progress_time = time.time()
     for i in np.arange(angMin, angMax + angStep, angStep):
       self.angList.append(i)
       self.angDist.append(self.AngDist(i))
-      if (i - angMin) % ((angMax - angMin) / 10) < angStep:
+      if time.time() - progress_time > 2:
         elapsed_time = time.time() - start_time
-        print(f"\rProgress: {100 * (i - angMin) / (angMax - angMin):.1f}% - Time elapsed: {elapsed_time:.2f} sec", end="")
+        print(f"\r Time elapsed: {elapsed_time:.2f} sec, Progress: {100 * (i - angMin) / (angMax - angMin):.1f}%", end="")
+        progress_time = time.time()
     stop_time = time.time()
     print(f"\nTotal time {(stop_time - start_time) :.2f} sec")
 
