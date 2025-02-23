@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-
 from boundState import BoundState
 from solveSE import WoodsSaxonPot, CoulombPotential, SpinOrbit_Pot, WS_SurfacePot
 import matplotlib.pyplot as plt
 
 # boundState = BoundState(16, 8, 1, 0, 1, 0, 0.5, -3.273)
-# boundState.SetPotential(1.25, 0.65, -6, 1.10, 0.65, 1.30)
-# boundState.FindPotentialDepth(-75, -40, 0.1)
+# boundState = BoundState(16, 8, 1, 0, 0, 2, 2.5, -4.14)
+# boundState.SetPotential(1.10, 0.65, -6, 1.25, 0.65, 1.30)
+# boundState.FindPotentialDepth(-75, -50, 0.1)
 # # boundState.PrintWF()
 # boundState.PlotBoundState()
 
@@ -15,12 +15,12 @@ import matplotlib.pyplot as plt
 
 from distortedWave import DistortedWave
 
-dw = DistortedWave("60Ni", "p", 30)
-dw.ClearPotential()
-dw.AddPotential(WoodsSaxonPot(-47.937-2.853j, 1.20, 0.669), False)
-dw.AddPotential(WS_SurfacePot(-6.878j, 1.28, 0.550), False)
-dw.AddPotential(SpinOrbit_Pot(-5.250 + 0.162j, 1.02, 0.590), False)
-dw.AddPotential(CoulombPotential(1.258), False)
+# dw = DistortedWave("60Ni", "p", 30)
+# dw.ClearPotential()
+# dw.AddPotential(WoodsSaxonPot(-47.937-2.853j, 1.20, 0.669), False)
+# dw.AddPotential(WS_SurfacePot(-6.878j, 1.28, 0.550), False)
+# dw.AddPotential(SpinOrbit_Pot(-5.250 + 0.162j, 1.02, 0.590), False)
+# dw.AddPotential(CoulombPotential(1.258), False)
 
 # dw = DistortedWave("60Ni", "d", 60)
 # dw.PrintInput()
@@ -32,12 +32,12 @@ dw.AddPotential(CoulombPotential(1.258), False)
 # dw.AddPotential(CoulombPotential(1.303), False)
 
 
-dw.CalScatteringMatrix()
+# dw.CalScatteringMatrix()
 # dw.PrintScatteringMatrix()
 
-dw.PlotDCSUnpolarized(180, 1)
+# dw.PlotDCSUnpolarized(180, 1)
 
-exit()
+# exit()
 
 # for i in range(1, 19):
 #   theta = 10*i
@@ -54,9 +54,14 @@ exit()
 import sys, os
 import re
 import numpy as np
+from scipy.integrate import simpson
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
 from IAEANuclearData import IsotopeClass
+
+from clebschGordan import clebsch_gordan, quantum_factorial, obeys_triangle_rule
+from sympy.physics.quantum.cg import wigner_9j
 
 # Woods-Saxon
 v = 0
@@ -220,8 +225,11 @@ nu_b = "p"
 nu_B = "17O"
 ELabPreU = 10 # MeV/u
 Ex = 0.87
-J_B = 0.5
+J_B = "1/2+"
 orbital = "1s1/2"
+
+import time
+start_time = time.time()  # Start the timer
 
 iso = IsotopeClass()
 
@@ -252,6 +260,12 @@ else:  #(p,d)
 sym_A = iso.GetSymbol(A_A, Z_A)
 sym_B = iso.GetSymbol(A_B, Z_B)
 
+spin_A_str = iso.GetJpi(A_A, Z_A)
+spin_B_str = J_B
+
+spin_A = float(eval(re.sub(r'[+-]', '', spin_A_str)))
+spin_B = float(eval(re.sub(r'[+-]', '', J_B)))
+
 if A_a == 2 and Z_a == 1:
     spin_a = 1.0
     spin_b = 0.5   
@@ -259,10 +273,7 @@ else:
     spin_a = 0.5
     spin_b = 1.0
 
-Q_value = mass_A + mass_a - mass_b - mass_B - Ex
-
-print(f"Q-value : {Q_value:10.6f} MeV")
-print(f"Binding : {BindingEnergy:10.6f} MeV")
+s = 0.5 # spin of x, neutron or proton
 
 #=================== digest orbital
 match = re.search(r'[a-zA-Z]', orbital)  # Find first letter
@@ -275,6 +286,39 @@ j_sym = orbital[index+1:]
 j = eval(j_sym)
 l = ConvertLSym(l_sym)
 
+#==== check the angular conservasion 
+passJ = False
+if obeys_triangle_rule(spin_A, spin_B, j):
+    passJ = True
+else:
+    print(f"the orbital spin-J ({j}) does not consver J({nu_A}) + J({nu_B}) = {spin_A} + {spin_B}.")
+
+passS = False
+if obeys_triangle_rule(spin_a, spin_b, s):
+    passS = True
+else:
+    print(f"the orbital spin-s ({s})does not consver S({nu_a}) + S({nu_b}) = {spin_a} + {spin_b}.")
+
+passl = False
+if obeys_triangle_rule(j, s, l):
+    passl = True
+else:
+    print(f"the orbital spin-l ({l})does not consver J({j}) + J({s}).")
+
+if passJ == False or passS == False or passl == False :
+    print("Fail angular momentum conservation.")
+    exit()
+
+reactionStr = f"{nu_A}({spin_A_str})({nu_a},{nu_b}){nu_B}({Ex:.3f}|{spin_B_str}, {orbital}) @ {ELabPreU:.1f} MeV/u"
+
+print("==================================================")
+print(reactionStr)
+
+Q_value = mass_A + mass_a - mass_b - mass_B - Ex
+print(f"Transfer Orbtial : {orbital}")
+print(f"Q-value : {Q_value:10.6f} MeV")
+print(f"Binding : {BindingEnergy:10.6f} MeV")
+
 #=================== find the maximum L for partial wave
 mass_I = mass_A * mass_a / (mass_A + mass_a) # reduced mass of incoming channel
 hbarc = 197.3269788 # MeV.fm
@@ -284,17 +328,22 @@ maxL = int(touching_Radius * k_I) # maximum partial wave
 print(f"max L : {maxL}")
 
 #================== Bound state
+print("====================== Bound state ")
 boundState = BoundState(A_c, Z_c, A_x, Z_x, node, l, j, BindingEnergy)
-boundState.SetPotential(1.25, 0.65, -6, 1.10, 0.65, 1.30)
+boundState.SetPotential(1.10, 0.65, -6, 1.25, 0.65, 1.30)
 boundState.FindPotentialDepth(-70, -55, 0.1)
 # # boundState.PrintWF()
 # boundState.PlotBoundState()
 
+# exit()
+
 #================== incoming wave function
+print("====================== Incoming wave function ")
 AnCai(A_A, Z_A, A_a * ELabPreU)
 
 dwI = DistortedWave(nu_A, nu_a, ELabPreU * A_a)
 dwI.maxL = maxL
+dwI.PrintInput()
 dwI.ClearPotential()
 dwI.AddPotential(WoodsSaxonPot(-v, r0, a), False)
 dwI.AddPotential(WoodsSaxonPot(-1j*vi, ri0, ai), False)
@@ -302,12 +351,17 @@ dwI.AddPotential(WS_SurfacePot(-1j*vsi, rsi0, asi), False)
 dwI.AddPotential(SpinOrbit_Pot(-vso , rso0, aso), False)
 dwI.AddPotential(SpinOrbit_Pot(- 1j* vsoi, rsoi0, asoi), False)
 dwI.AddPotential(CoulombPotential(rc0), False)
+dwI.PrintPotentials()
 
 sm_I, wfu_I = dwI.CalScatteringMatrix()
 
 dwI.PrintScatteringMatrix()
 
+# dwI.PlotDistortedWave(1, 1, 20)
+# dwI.PlotScatteringMatrix()
+
 #================= outgoing wave function
+print("====================== Outgoing wave function ")
 Koning(A_B, Z_B, A_a*ELabPreU + Q_value - Ex, Z_b)
 
 dwO = DistortedWave(nu_B, nu_b, ELabPreU * A_a + Q_value - Ex)
@@ -319,7 +373,102 @@ dwO.AddPotential(WS_SurfacePot(-1j*vsi, rsi0, asi), False)
 dwO.AddPotential(SpinOrbit_Pot(-vso , rso0, aso), False)
 dwO.AddPotential(SpinOrbit_Pot(- 1j* vsoi, rsoi0, asoi), False)
 dwO.AddPotential(CoulombPotential(rc0), False)
+dwO.PrintPotentials()
 
 sm_O, wfu_O = dwO.CalScatteringMatrix()
 
 dwO.PrintScatteringMatrix()
+
+# dwO.PlotDistortedWave(1, 1.5, 20)
+
+end_time = time.time()  # End the timer
+print(f"Time used {(end_time - start_time) * 1000:.2f} milliseconds")
+
+#=================== Calculate radial integral
+print("====================== Calculating Radial integrals")
+
+def FormatSpin(spin : float) -> str:
+    if int(2*spin) % 2 == 0 :
+        return f"{int(spin):+d}"
+    else:
+        return f"{int(2*spin):+d}/2"
+
+spin_a = dwI.spin_a
+spin_b = dwO.spin_a
+
+radialInt = np.zeros((maxL+1, int(2*spin_a+1), int(2*spin_b+1)), dtype=complex)
+
+bs = boundState.GetBoundStateWF()
+
+for L in range(0, maxL+1):
+    for index1 in range(0, len(wfu_I[L])):
+        wf1 = wfu_I[L][index1]
+        for index2 in range(0, len(wfu_O[L])):
+            wf2 = wfu_O[L][index2]
+            # if L == 0 and index1 == 2 and index2 == 1 :
+            #     for i in range(0, len(bs)):
+            #         if i%50 == 0 :
+            #             print(bs[i], wf1[i], wf2[i], bs[i]* wf1[i]* wf2[i])
+            pf1 = np.exp(1j*dwI.CoulombPhaseShift(L))
+            pf2 = np.exp(1j*dwI.CoulombPhaseShift(L))
+            integral = simpson (bs*wf1*wf2, dx=boundState.dr)
+            radialInt[L][index1][index2] = integral * pf1 * pf2
+
+#print radial integral
+for index1 in range(0, int(2*spin_a) + 1):
+    for index2 in range(0, int(2*spin_b) + 1):
+        print(f"======================= J1 = L{FormatSpin(index1-spin_a)}, J2 = L{FormatSpin(index2-spin_b)}")
+        for L in range(0, maxL+1):
+            J1 = L + index1 - spin_a
+            J2 = L + index2 - spin_b
+            print(f"{L:2d}, {J1:4.1f}, {J2:4.1f}, {np.real(radialInt[L][index1][index2]):12.4e} +  {np.imag(radialInt[L][index1][index2]):12.4e}I")
+
+# Plot radial integral
+fig, axes = plt.subplots(int(2*spin_b+1), int(2*spin_a+1), figsize=(6*int(2*spin_a+1), 4*int(2*spin_b+1)))
+
+for index2 in range(0, int(2*spin_b) + 1):
+    for index1 in range(0, int(2*spin_a) + 1):
+        haha = []
+        l_list = []
+        for L in range(0, maxL+1):
+            J1 = L + index1 - spin_a
+            J2 = L + index2 - spin_b
+            if J1 < 0 or J2 < 0 :
+                continue
+            l_list.append(L)
+            haha.append(radialInt[L][index1][index2])
+        axes[index2, index1].plot(l_list, np.real(haha), label="Real", marker='o')
+        axes[index2, index1].plot(l_list, np.imag(haha), label="Imag", marker='x')
+        axes[index2, index1].legend()
+        axes[index2, index1].set_xlabel('L')
+        axes[index2, index1].set_ylabel('Value')
+        axes[index2, index1].set_title(f'Radial Int. vs L for Spin J1 = L{FormatSpin(index1-spin_a)}, J2 = L{FormatSpin(index2-spin_b)}.')
+        axes[index2, index1].set_xlim(-1, maxL+1)
+        axes[index2, index1].grid()
+
+plt.tight_layout()
+plt.show(block=False)
+input("Press Enter to continue...")
+
+
+def Gamma(L1, J1, L2, J2, m, ma, mb):
+    if  int(L1 + L2 + l)%2 != 0:
+        return 0
+    else:
+        fact0 = wigner_9j(j, l, s, J1, L1, spin_a, J2, L2, spin_b)
+        if fact0 == 0:
+            return 0
+        else:
+            fact1 = pow(-1, m) * np.power(1j, L1-L2-l) * (2*L2+1) * np.sqrt((2*l+1)*(2*s+1)*(2*L1+1)*(2*J2+1))
+            fact2 = np.sqrt( quantum_factorial(L2-m) / quantum_factorial(L2+m) )
+            fact3 = clebsch_gordan(J2, mb-m,      j, m-mb+ma, J1,   ma)
+            fact4 = clebsch_gordan(L1,    0, spin_a,      ma, J1,   ma)
+            fact5 = clebsch_gordan(L2,   -m, spin_b,      mb, J2, mb-m)
+            fact6 = clebsch_gordan(L1,    0,      l,       0, L2,    0)
+            return fact0 * fact1 * fact2 * fact3 * fact4 * fact5 * fact6
+
+
+def Beta(m, ma, mb, theta_deg):
+    return 0    
+
+

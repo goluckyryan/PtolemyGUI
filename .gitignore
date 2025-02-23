@@ -14,5 +14,8 @@ IAEA_NuclearData.csv
 
 *.in
 *.out
+*.prof
+
+test.py
 
 DWUCK4

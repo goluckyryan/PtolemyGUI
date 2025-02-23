@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpmath import whitw
 import mpmath
+import time
 
 mpmath.mp.dps = 15  # Decimal places of precision
 
@@ -21,6 +22,7 @@ class BoundState(SolvingSE):
     self.PrintInput()
     self.node = node # number of nodes of the wave function r > 0
     self.FoundBounfState = False
+    self.wf = None
 
   def SetPotential(self, r0, a0, Vso, rso, aso, rc = 0.0):
     self.r0 = r0
@@ -36,6 +38,7 @@ class BoundState(SolvingSE):
       self.AddPotential(CoulombPotential(rc), False) # not use mass number of a
 
   def FindPotentialDepth(self, Vmin, Vmax, Vstep=1, isPathWhittaker = True):
+    start_time = time.time()  # Start the timer
     V0List = np.arange(Vmin, Vmax, Vstep)
     lastSolU = []
     minLastSolU = 0
@@ -120,6 +123,12 @@ class BoundState(SolvingSE):
         self.ANC = float(self.wf[rIndex] / W_values[rIndex])
         print(f"ANC : {self.ANC:10.6e}")
         self.wf[rIndex:] = self.ANC * np.array(W_values[rIndex:])
+
+    end_time = time.time()  # End the timer
+    print(f"Finding Potential Depth and Bound state took {(end_time - start_time) * 1000:.2f} milliseconds")
+
+  def GetBoundStateWF(self):
+    return self.wf
 
   def PlotBoundState(self, maker=None):
     if not self.FoundBounfState:

@@ -136,7 +136,7 @@ class IsotopeClass:
     except:
       return "unknown"
   
-  def GetJpi(self, A : int, Z : int):
+  def GetJpi(self, A : int, Z : int) -> str:
     try:
       dudu = self.data[(self.data['z']==Z) & (self.data['A']==A)]
       return dudu['jp'].iloc[0]

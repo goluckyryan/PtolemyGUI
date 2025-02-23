@@ -44,3 +44,5 @@
 #32Si(t,p)34Si     0        0L=0     0+           0.000   8MeV/u      lA                #two-nucleon_transfer
 #133Sb(t,3He)133Sn 7/2      0g7/2    0+           0.000   8.5MeV/u    Ax .... cannot cal
 #12C(6Li,d)16O     0        nL=2     2+           0.0     10MeV/u     6K
+
+16O(d,p)17O        0        1s1/2    1/2+         0.87    10MeV/u     AK

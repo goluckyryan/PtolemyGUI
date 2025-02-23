@@ -8,79 +8,100 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
 from IAEANuclearData import IsotopeClass
 
-class CoulombPotential:
-  def __init__(self, rc):
-    self.rc = rc
-    self.id = 0
-    self.ee = 1.43996 # MeV.fm
-
-  def setA(self, A):
-    self.Rc = self.rc * math.pow(A, 1/3)
-
-  def setAa(self, A, a):
-    self.Rc = self.rc * (math.pow(A, 1/3) + math.pow(a, 1/3))
+class PotentialForm:
+  def __init__(self):
+    self.V0 = -10
+    self.r0 = 1.3
+    self.a0 = 0.65
+    self.id = -1
 
   def setCharge(self, Z):
     self.Charge = Z
 
-  def output(self, x):
-    if x >self.Rc:
-        return (self.Charge * self.ee) / (x + 1e-20)  # Add a small value to avoid division by zero
-    else:
-        return (self.Charge * self.ee) / (2 * self.Rc) * (3 - (x / self.Rc)**2)
+  # def setA(self, A):
+  #   self.R0 = self.r0 * math.pow(A, 1/3)
 
-class WoodsSaxonPot:
+  def setAa(self, A, a):
+    self.R0= self.r0 * (math.pow(A, 1/3) + math.pow(a, 1/3))
+
+  def output(self, x):
+    return 0
+  
+  def printPot(self, msg:str):
+    print(f"{msg:20s} : V0 {np.real(self.V0):7.3f} + {np.imag(self.V0):7.3f} I, R0 {self.R0:6.4f}({self.r0:6.4f}), a0 {self.a0:6.4f}, ")
+
+class CoulombPotential(PotentialForm):
+  def __init__(self, rc):
+    self.V0 = 0
+    self.r0 = rc
+    self.a0 = 0
+    self.id = 0
+    self.ee = 1.43996 # MeV.fm
+
+  def output(self, x):
+    if self.Charge == 0 :
+      return 0
+    else:
+      if x >self.R0:
+          return (self.Charge * self.ee) / (x + 1e-20)  # Add a small value to avoid division by zero
+      else:
+          return (self.Charge * self.ee) / (2 * self.R0) * (3 - (x / self.R0)**2)
+    
+  def printPot(self):
+    return super().printPot("Coulomb")
+
+class WoodsSaxonPot(PotentialForm):
   def __init__(self, V0, r0, a0) :
     self.V0 = V0
     self.r0 = r0
     self.a0 = a0
     self.id = 1
 
-  def setA(self, A):
-    self.R0 = self.r0 * math.pow(A, 1/3)
-
-  def setAa(self, A, a):
-    self.R0 = self.r0 * (math.pow(A, 1/3) + math.pow(a, 1/3))
-
   def output(self, x):
-    return self.V0/(1 + math.exp((x-self.R0)/self.a0))
+    if self.V0 == 0.0:
+      return 0
+    else:
+      return self.V0/(1 + math.exp((x-self.R0)/self.a0))
 
-class SpinOrbit_Pot:
+  def printPot(self):
+    return super().printPot("Woods-Saxon")
+
+class SpinOrbit_Pot(PotentialForm):
   def __init__(self, VSO, rSO, aSO) :
     # the LS factor is put in the SolvingSE Class
-    self.VSO = VSO
-    self.rSO = rSO
-    self.aSO = aSO
+    self.V0 = VSO
+    self.r0 = rSO
+    self.a0 = aSO
     self.id = 2
 
-  def setA(self, A):
-    self.RSO = self.rSO * math.pow(A, 1/3)
-
-  def setAa(self, A, a):
-    self.RSO = self.rSO * (math.pow(A, 1/3) + math.pow(a, 1/3))
-
   def output(self, x):
-    if x > 0 :
-      return 4*(self.VSO * math.exp((x-self.RSO)/self.aSO))/(self.aSO*math.pow(1+math.exp((x-self.RSO)/self.aSO),2))/x
-    else :
-      return 4*1e+19
+    if self.V0 == 0.0 :
+      return 0
+    else:
+      if x > 0 :
+        return 4*(self.V0 * math.exp((x-self.R0)/self.a0))/(self.a0*math.pow(1+math.exp((x-self.R0)/self.a0),2))/x
+      else :
+        return 4*1e+19
 
-class WS_SurfacePot:
+  def printPot(self):
+    return super().printPot("Spin-Orbit")
+
+class WS_SurfacePot(PotentialForm):
   def __init__(self, V0, r0, a0):
     self.V0 = V0
     self.r0 = r0
     self.a0 = a0
     self.id = 3
 
-  def setA(self, A):
-    self.R0 = self.r0 * math.pow(A, 1/3)
-
-  def setAa(self, A, a):
-    self.R0 = self.r0 * (math.pow(A, 1/3) + math.pow(a, 1/3))
-
   def output(self, x):
-    exponent = (x - self.R0) / self.a0
-    return 4* self.V0 * math.exp(exponent) / (1 + math.exp(exponent))**2
+    if self.V0 == 0 :
+      return 0
+    else:
+      exponent = (x - self.R0) / self.a0
+      return 4* self.V0 * math.exp(exponent) / (1 + math.exp(exponent))**2
+
+  def printPot(self):
+    return super().printPot("Woods-Saxon Surface")
 
 #========================================
 class SolvingSE:
@@ -205,23 +226,30 @@ class SolvingSE:
   def ClearPotential(self):
     self.potential_List = []
 
-  def AddPotential(self, pot, useBothMass : bool = False):
-    if pot.id == 0:
-      pot.setCharge(self.Z)
-    if useBothMass:
-      pot.setAa(self.A_A, self.A_a)
-    else:
-      pot.setAa(self.A_A, 0)
-    self.potential_List.append(pot)
+  def AddPotential(self, pot : PotentialForm, useBothMass : bool = False):
+    if isinstance(pot, PotentialForm):
+      if pot.id == 0:
+        pot.setCharge(self.Z)
+      if useBothMass:
+        pot.setAa(self.A_A, self.A_a)
+      else:
+        pot.setAa(self.A_A, 0)
+      self.potential_List.append(pot)
 
   def __PotentialValue(self, x):
     value = 0
     for pot in self.potential_List:
-      if pot.id == 2 and self.L > 0:
-        value = value + self.LS() * pot.output(x)
-      else:
-        value = value + pot.output(x)
+      if isinstance(pot, PotentialForm):
+        if pot.id == 2 and self.L > 0:
+          value = value + self.LS() * pot.output(x)
+        else:
+          value = value + pot.output(x)
     return value
+  
+  def PrintPotentials(self):
+    for pot in self.potential_List:
+      if isinstance(pot, PotentialForm):
+        pot.printPot()
 
   def GetPotentialValue(self, x):
     return self.__PotentialValue(x)

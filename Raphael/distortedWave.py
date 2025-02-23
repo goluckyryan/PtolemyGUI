@@ -17,20 +17,8 @@ def SevenPointsSlope(data, n):
 def FivePointsSlope(data, n):
   return ( data[n + 2] - 8 * data[n + 1] + 8 * data[n - 1] -  data[n - 2] ) / 12
 
-# from sympy.physics.quantum.cg import CG
-# from sympy import S
-# def clebsch_gordan(j1, m1, j2, m2, j, m):
-#     cg = CG(S(j1), S(m1), S(j2), S(m2), S(j), S(m))
-#     result = cg.doit()
-#     return np.complex128(result)
-
-def KroneckerDelta(i, j):
-  if i == j:
-    return 1
-  else:
-    return 0
-  
-from clebschGordan import clebsch_gordan
+from clebschGordan import clebsch_gordan, KroneckerDelta
+import time
 
 ############################################################
 class DistortedWave(SolvingSE):
@@ -57,6 +45,8 @@ class DistortedWave(SolvingSE):
     return np.angle(gamma(L+1+1j*eta))
 
   def CalScatteringMatrix(self, maxL = None, verbose = False):
+    start_time = time.time()  # Start the timer
+
     if maxL is None:
       maxL = self.maxL
 
@@ -101,16 +91,28 @@ class DistortedWave(SolvingSE):
         temp_ScatMatrix.append(ScatMatrix)
 
         dwU = np.array(self.solU, dtype=np.complex128)
-        dwU *= np.exp(-1j*sigma)/(B-A*1j)
+        #dwU *= np.exp(-1j*sigma)/(B-A*1j)
+        dwU *= 1./(B-A*1j)
         temp_distortedWaveU.append(dwU)
       
       self.ScatMatrix.append(temp_ScatMatrix)
       self.distortedWaveU.append(temp_distortedWaveU)
 
+    end_time = time.time()  # End the timer
+    print(f"Calculate Scattering Matrixes took {(end_time - start_time) * 1000:.2f} milliseconds")
+
     return [self.ScatMatrix, self.distortedWaveU]
 
   def PrintScatteringMatrix(self):
+    print("======================= Scattering Matrix")
     for L in range(0, len(self.ScatMatrix)):
+
+      if L == 0 :
+        print(" ", end="")
+        for i in range(0, len(self.ScatMatrix[L])):
+            print(f"{{{'L':>2s},{'J':>4s}, {'Real':>10s} +   {'Imaginary':>10s}}}, ", end="")
+        print("")
+
       print("{", end="")
       for i in range(0, len(self.ScatMatrix[L])):
         print("{", end="")
@@ -125,11 +127,14 @@ class DistortedWave(SolvingSE):
     return self.ScatMatrix[L][J-L+self.S]
 
   def GetDistortedWave(self, L, J):
-    return self.distortedWaveU[L][J-L+self.S]
+    return self.distortedWaveU[L][int(J-L+self.S)]
 
-  def PlotDistortedWave(self, L, J):
+  def PlotDistortedWave(self, L, J, maxR = None):
     plt.plot(self.rpos, np.real(self.GetDistortedWave(L, J)), label="Real")
     plt.plot(self.rpos, np.imag(self.GetDistortedWave(L, J)), label="Imaginary")
+    plt.title(f"Radial wave function for L={L} and J={J}")
+    if maxR != None :
+      plt.xlim(-1, maxR) 
     plt.legend()
     plt.grid()
     plt.show(block=False)
