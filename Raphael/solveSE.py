@@ -197,7 +197,7 @@ class SolvingSE:
       self.eta = 0
     else:
       self.eta = self.Z * self.ee * self.k /2 /self.Ecm
-    self.maxL = int(self.k * (1.4 * (self.A_A**(1/3) + self.A_a**(1/3)) + 5))
+    self.maxL = int(self.k * (1.4 * (self.A_A**(1/3) + self.A_a**(1/3)) + 10))
 
   # def SetA_ExSpin(self, ExA, sA ):
   #   self.ExA = ExA

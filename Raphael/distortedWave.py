@@ -53,16 +53,18 @@ class DistortedWave(SolvingSE):
     self.ScatMatrix = []
     self.distortedWaveU = []
 
+    tempZeroList = np.zeros(len(self.rpos), dtype=np.complex128)
+
     for L in range(0, maxL+1):
-      sigma = self.CoulombPhaseShift()
+      # sigma = self.CoulombPhaseShift()
 
       temp_ScatMatrix = []
       temp_distortedWaveU = []
 
       for J in np.arange(L-self.S, L + self.S+1, 1):
-        if J < 0:
+        if J < 0 or (L==0 and J != self.S):
           temp_ScatMatrix.append(0)
-          temp_distortedWaveU.append(0)
+          temp_distortedWaveU.append(tempZeroList)
           continue
 
         self.SetLJ(L, J)
