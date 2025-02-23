@@ -106,6 +106,11 @@ def clebsch_gordan(j1, m1,j2, m2, j, m):
     
     return prefactor * sum_result
 
+def nagativeOnePower(l:int):
+    if int(2*l)%2 == 0 :
+        return 1
+    else:
+        return -1
 
 #============ don;t use, very slow, use the sympy package
 def threej(j1, m1, j2, m2, j3, m3):
@@ -115,7 +120,7 @@ def threej(j1, m1, j2, m2, j3, m3):
         return 0
     
     cg = clebsch_gordan(j1, m1, j2, m2, j3, -m3)
-    norm = pow(-1, j1-j2-m3)/(2*j3+1)**0.5
+    norm = nagativeOnePower(j1-j2-m3)/(2*j3+1)**0.5
     return norm * cg
 
 def sixj(j1, j2, j3, j4, j5, j6):
@@ -130,10 +135,10 @@ def sixj(j1, j2, j3, j4, j5, j6):
     sixj_value = 0.0
     
     # Ranges for m values
-    m1_range = range(-j1, j1 + 1)
-    m2_range = range(-j2, j2 + 1)
-    m4_range = range(-j4, j4 + 1)
-    m5_range = range(-j5, j5 + 1)
+    m1_range = np.arange(-j1, j1 + 1, 1)
+    m2_range = np.arange(-j2, j2 + 1, 1)
+    m4_range = np.arange(-j4, j4 + 1, 1)
+    m5_range = np.arange(-j5, j5 + 1, 1)
 
     # Sum over m values
     for m1 in m1_range:
@@ -146,9 +151,9 @@ def sixj(j1, j2, j3, j4, j5, j6):
                     if m3 + m5 not in m4_range or m1 + m6 not in m5_range:
                         continue
                     
-                    # cg1 = threej(j1, -m1, j2, -m2, j3, -m3)
+                    cg1 = threej(j1, -m1, j2, -m2, j3, -m3)
 
-                    cg1 = (-1)**(j1-j2+m3) * clebsch_gordan(j1, -m1, j2, -m2, j3, m3) / (2*j3+1)**0.5
+                    # cg1 = nagativeOnePower(j1-j2+m3) * clebsch_gordan(j1, -m1, j2, -m2, j3, m3) / (2*j3+1)**0.5
 
                     cg2 = threej(j1,  m1, j5, -m5, j6,  m6)
                     cg3 = threej(j4,  m4, j2,  m2, j6, -m6)
@@ -183,19 +188,6 @@ def ninej(j1, j2, j3, j4, j5, j6, j7, j8, j9):
     # Sum over x (must be integer or half-integer depending on inputs)
     step = 1 if all(j % 1 == 0 for j in [j1, j2, j3, j4, j5, j6, j7, j8, j9]) else 0.5
     for x in [x_min + i * step for i in range(int((x_max - x_min) / step) + 1)]:
-        # if not (obeys_triangle_rule(j1, j4, j7) and
-        #         obeys_triangle_rule(j1, j9,  x) and # j1 j9
-        #         obeys_triangle_rule(j8, j9, j7) and
-        #         obeys_triangle_rule(j8, j4,  x) and # j8 j4
-        #         obeys_triangle_rule(j2, j5, j8) and
-        #         obeys_triangle_rule(j2,  x, j6) and # j2 j6
-        #         obeys_triangle_rule(j4, j5, j6) and
-        #         obeys_triangle_rule(j4,  x, j8) and # j4 j8
-        #         obeys_triangle_rule(j3, j6, j9) and
-        #         obeys_triangle_rule(j3, j1, j2) and
-        #         obeys_triangle_rule( x, j6, j2) and # j2 j6
-        #         obeys_triangle_rule( x, j1, j9)):   # j1 j9
-        #     continue
         
         if not (obeys_triangle_rule(j1, j9,  x) and # j1 j9
                 obeys_triangle_rule(j8, j4,  x) and # j8 j4

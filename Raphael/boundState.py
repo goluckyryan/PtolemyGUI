@@ -39,7 +39,7 @@ class BoundState(SolvingSE):
 
   def FindPotentialDepth(self, Vmin, Vmax, Vstep=1, isPathWhittaker = True):
     start_time = time.time()  # Start the timer
-    print(f"Potential Depth Search from {Vmin:.2f} to {Vmax:.2f} MeV, step {Vstep:.2f}")
+    print(f"=============== Potential Depth Search from {Vmin:.2f} to {Vmax:.2f} MeV, step {Vstep:.2f}")
     V0List = np.arange(Vmin, Vmax, Vstep)
     lastSolU = []
     minLastSolU = 0

@@ -21,7 +21,6 @@ import opticalPotentials as op
 
 class DWBA_ZR:
   def __init__(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
-    start_time = time.time()
     iso = IsotopeClass()
     
     A_A, Z_A = iso.GetAZ(nu_A)
@@ -79,6 +78,11 @@ class DWBA_ZR:
     self.j = eval(j_sym)
     self.l = op.ConvertLSym(l_sym)
 
+    self.j = self.approximate_to_half_integer(self.j)
+    self.s = self.approximate_to_half_integer(self.s)
+    self.spin_a = self.approximate_to_half_integer(self.spin_a)
+    self.spin_b = self.approximate_to_half_integer(self.spin_b)
+
     passJ = False
     if obeys_triangle_rule(self.spin_A, self.spin_B, self.j):
       passJ = True
@@ -116,7 +120,7 @@ class DWBA_ZR:
     print("====================== Bound state ")
     self.boundState = BoundState(A_c, Z_c, A_x, Z_x, node, self.l, self.j, BindingEnergy)
     self.boundState.SetPotential(1.10, 0.65, -6, 1.25, 0.65, 1.30)
-    self.boundState.FindPotentialDepth(-70, -45, 0.5)
+    
 
     print("====================== Incoming wave function ")
     op.AnCai(A_A, Z_A, self.ELab)
@@ -139,10 +143,7 @@ class DWBA_ZR:
     self.k_I = self.dwI.k # wave number of incoming channel
     self.maxL = self.dwI.maxL
 
-    sm_I, wfu_I = self.dwI.CalScatteringMatrix()
-
-    self.dwI.PrintScatteringMatrix()
-
+    
     Ecm_I = self.dwI.Ecm
     Ecm_O = Ecm_I + self.Q_value
     Eout = ((Ecm_O + mass_b + mass_B + self.ExB)**2 - (mass_b + mass_B + ExB)**2)/2/mass_B
@@ -164,10 +165,59 @@ class DWBA_ZR:
 
     self.dwO.PrintPotentials()
 
+    self.radialInt = None
+
+    mass_I = self.dwI.mu
+    k_I = self.dwI.k
+    mass_O = self.dwO.mu # reduced mass of outgoing channel
+    k_O = self.dwO.k # wave number of outgoing channel
+
+    D0 = 1.55e+4 # for (d,p)
+
+    self.massBoverMassA = A_B/A_A
+    self.ffactor = np.sqrt(4*np.pi)/k_I /k_O * A_B/A_A
+
+    self.xsecScalingfactor = A_B / A_A *D0 * mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
+
+    self.PreCalNineJ()
+
+  #========== end of contructor
+
+  def FormatSpin(self, spin : float) -> str:
+    if int(2*spin) % 2 == 0 :
+      return f"{int(spin):+d}"
+    else:
+      return f"{int(2*spin):+d}/2"
+
+
+  def PrintRadialIntegral(self):   
+    for index1 in range(0, int(2*self.spin_a) + 1):
+      for index2 in range(0, int(2*self.spin_b) + 1):
+        print(f"======================= J1 = L{self.FormatSpin(index1-self.spin_a)}, J2 = L{self.FormatSpin(index2-self.spin_b)}")
+        for L1 in range(0, self.maxL+1):
+          print("{", end="")
+          for L2 in np.arange(abs(L1 - self.l), L1 + self.l + 1):
+            J1 = L1 + index1 - self.spin_a
+            J2 = int(L2) + index2 - self.spin_b
+            indexL2 = int(L2 - abs(L1-self.l))
+            print(f"{{{L1:2d}, {J1:4.1f}, {int(L2):2d}, {J2:4.1f}, {np.real(self.radialInt[L1][index1][indexL2][index2]):12.4e} +  {np.imag(self.radialInt[L1][index1][indexL2][index2]):12.4e}I}},", end="")
+          print("},")
+    print("=========================== end of Radial Integrals.")
+
+
+  def FindBoundState(self):
+    self.boundState.FindPotentialDepth(-70, -45, 0.5)
+
+  def CalRadialIntegral(self):
+    start_time = time.time()
+    sm_I, wfu_I = self.dwI.CalScatteringMatrix()
+    self.dwI.PrintScatteringMatrix()
+    
     sm_O, wfu_O_temp = self.dwO.CalScatteringMatrix()
 
     #============ rescale the outgoing wave 
-    rpos_O_temp = self.dwO.rpos * A_B/A_A
+    print("====================== Scaling the outgoing wave")
+    rpos_O_temp = self.dwO.rpos * self.massBoverMassA
     self.rpos_O = []
     rpos_O_filled = False
     self.wfu_O = []
@@ -207,45 +257,13 @@ class DWBA_ZR:
             indexL2 = int(L2 - abs(L1-self.l))
             self.radialInt[L1][index1][indexL2][index2] = integral * pf1 * pf2
 
-    mass_I = self.dwI.mu
-    k_I = self.dwI.k
-    mass_O = self.dwO.mu # reduced mass of outgoing channel
-    k_O = self.dwO.k # wave number of outgoing channel
-
-    D0 = 1.55e+4 # for (d,p)
-
-    self.massFactor = A_B/A_A
-    self.ffactor = np.sqrt(4*np.pi)/k_I /k_O * A_B/A_A
-
-    self.xsecScalingfactor = A_B / A_A *D0 * mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
-
     stop_time = time.time()
-    print(f"Total time {(stop_time - start_time) * 1000:.2f} msec")
-
-  #========== end of contructor
-
-  def FormatSpin(self, spin : float) -> str:
-    if int(2*spin) % 2 == 0 :
-      return f"{int(spin):+d}"
-    else:
-      return f"{int(2*spin):+d}/2"
-
-
-  def PrintRadialIntegral(self):   
-    for index1 in range(0, int(2*self.spin_a) + 1):
-      for index2 in range(0, int(2*self.spin_b) + 1):
-        print(f"======================= J1 = L{self.FormatSpin(index1-self.spin_a)}, J2 = L{self.FormatSpin(index2-self.spin_b)}")
-        for L1 in range(0, self.maxL+1):
-          print("{", end="")
-          for L2 in np.arange(abs(L1 - self.l), L1 + self.l + 1):
-            J1 = L1 + index1 - self.spin_a
-            J2 = int(L2) + index2 - self.spin_b
-            indexL2 = int(L2 - abs(L1-self.l))
-            print(f"{{{L1:2d}, {J1:4.1f}, {int(L2):2d}, {J2:4.1f}, {np.real(self.radialInt[L1][index1][indexL2][index2]):12.4e} +  {np.imag(self.radialInt[L1][index1][indexL2][index2]):12.4e}I}},", end="")
-          print("},")
-    print("=========================== end of Radial Integrals.")
+    print(f"Total time for radial intergal {(stop_time - start_time) * 1000:.2f} msec")
 
   def PlotRadialIntegral(self):
+    if self.radialInt is None:
+      print("Radial integral not computed.")
+      return
     spin_b = self.spin_b
     spin_a = self.spin_a
     l = int(self.l)
@@ -298,12 +316,38 @@ class DWBA_ZR:
       plt.grid()
       plt.show(block=False)
       input("Press Enter to continue...")
+  
+  def approximate_to_half_integer(self, value):
+    return round(value * 2) / 2
+  
+  def PreCalNineJ(self):
+    self.NineJ = np.zeros((self.maxL+1, int(2*self.spin_a+1), (2*self.l+1), int(2*self.spin_b+1)), dtype=float)
+    for L1 in range(0, self.maxL+1):
+      for ind1 in range(0,  int(2*self.spin_a+1)):
+        for indL2 in range(0, 2*self.l+1):
+          for ind2 in range(0, int(2*self.spin_B+1)):
+            J1 = self.approximate_to_half_integer(L1 + ind1 - self.spin_a)
+            L2 = int(L1 + indL2 - self.l)
+            J2 = self.approximate_to_half_integer(L2 + ind2 - self.spin_b)
+            self.NineJ[L1, ind1, indL2, ind2] = wigner_9j(self.j, self.l, self.s, J1, L1, self.spin_a, J2, L2, self.spin_b)
+
+  def GetPreCalNineJ(self, L1:int, J1, L2:int, J2):
+    ind1 = int(J1 - L1 + self.spin_a)
+    indL2 = int(L1 - L2 + self.l)
+    ind2 = int(J2 - L2 + self.spin_b)
+    return self.NineJ[L1, ind1, indL2, ind2]
 
   def Gamma(self, L1:int, J1, L2:int, J2, m:int, ma, mb):
+
     if  int(L1 + L2 + self.l)%2 != 0: #check if the sum of L1 + L2 + l is even
         return 0
     else:
-        fact0 = wigner_9j(S(2*self.j)/2, self.l, S(2*self.s)/2, S(2*J1)/2, L1, S(2*self.spin_a)/2, J2, S(2*L2)/2, S(2*self.spin_b)/2).evalf()
+        # fact0 = wigner_9j(S(2*self.j)/2, self.l, S(2*self.s)/2, S(2*J1)/2, L1, S(2*self.spin_a)/2, J2, S(2*L2)/2, S(2*self.spin_b)/2).evalf()
+        # fact0 = wigner_9j(self.j, self.l, S(2*self.s)/2, S(2*J1)/2, L1, S(2*self.spin_a)/2, J2, S(2*L2)/2, S(2*self.spin_b)/2).evalf()
+        # fact0 = wigner_9j(self.j, self.l, self.s, S(2*J1)/2, L1, S(2*self.spin_a)/2, J2, S(2*L2)/2, S(2*self.spin_b)/2).evalf()
+        # fact0 = wigner_9j(self.j, self.l, self.s, S(2*J1)/2, L1, self.spin_a, J2, S(2*L2)/2, S(2*self.spin_b)/2).evalf()
+        # fact0 = wigner_9j(self.j, self.l, self.s, S(2*J1)/2, L1, self.spin_a, J2, S(2*L2)/2, self.spin_b).evalf()
+        fact0 = self.GetPreCalNineJ(L1, J1, L2, J2)
         if fact0 == 0:
             return 0
         else:
@@ -316,6 +360,8 @@ class DWBA_ZR:
             return fact0 * fact1 * fact2 * fact3 * fact4 * fact5 * fact6
 
   def Beta(self, m:int, ma, mb):
+    if self.radialInt is None :
+      return 
     result = 0
     for L1 in np.arange(0, self.maxL+1):
       for J1 in np.arange(abs(L1 - self.spin_a), L1 + self.spin_a + 1, 1):
@@ -336,9 +382,7 @@ class DWBA_ZR:
             gg = self.Gamma(L1, J1, L2, J2, m, ma, mb)
             if gg == 0:
                continue
-            lp = self.legendrePArray[int(L2)][int(abs(m))] 
-            if m < 0 :
-              lp *= (-1)**m * quantum_factorial(int(L2)+m)/ quantum_factorial(int(L2)-m)
+            lp = self.GetPreCalLegendreP(L2, m)
             ri = self.radialInt[int(L1)][index1][indexL2][index2]
             # print(f"{L1:2d}, {J1:4.1f}({index1:d}), {L2:2d}({indexL2:d}), {J2:4.1f}({index2:d}), {gg:10.6f}, {ri *self.ffactor :.10f}, {lp:10.6f}")
 
@@ -352,8 +396,14 @@ class DWBA_ZR:
     if maxM is None:
       maxM = int(self.j + self.spin_b + self.spin_a)
     self.legendrePArray = associated_legendre_array(maxL, maxM, theta_deg)
+
+  def GetPreCalLegendreP(self, L2:int, m:int):
+    lp = self.legendrePArray[int(L2)][int(abs(m))] 
+    if m < 0 :
+      lp *= (-1)**m * quantum_factorial(int(L2)+m)/ quantum_factorial(int(L2)-m)
+    return lp
      
-  def AngDist(self, theta_deg):
+  def AngDist(self, theta_deg:float) -> float:
     xsec = 0
     self.PreCalLegendreP(theta_deg)
     for ma in np.arange(-self.spin_a, self.spin_a + 1, 1):
@@ -364,9 +414,40 @@ class DWBA_ZR:
     
     return xsec * self.xsecScalingfactor * 10 # factor 10 for fm^2 = 10 mb
 
+  def CalAngDistribution(self, angMin:float = 0, angMax:float = 180, angStep:float = 1):
+    self.angMin = angMin
+    self.angMax = angMax
+    self.angList = []
+    self.angDist = []
+    print(f"======== Calcalating Angular distribution from {angMin:.1f} to {angMax:1.f}, step {angStep:.1f}...")
+    start_time = time.time()
+    for i in np.arange(angMin, angMax + angStep, angStep):
+      self.angList.append(i)
+      self.angDist.append(self.AngDist(i))
+      if (i - angMin) % ((angMax - angMin) / 10) < angStep:
+        elapsed_time = time.time() - start_time
+        print(f"\rProgress: {100 * (i - angMin) / (angMax - angMin):.1f}% - Time elapsed: {elapsed_time:.2f} sec", end="")
+    stop_time = time.time()
+    print(f"\nTotal time {(stop_time - start_time) :.2f} sec")
 
+  def PrintAngDist(self):
+    for th, xs in zip(self.angList, self.angDist):
+      print(f"{th:6.1f}, {xs:13.10f}")
 
+  def PlotAngDist(self, angMin = None, angMax = None):
+    plt.plot(self.angList, self.angDist)
+    plt.title(self.reactionStr)
+    if angMin is None and angMax is None:
+      plt.xlim(-1 + self.angMin, self.angMax + 1)
+    if angMin is None and angMax != None:
+      plt.xlim(-1 + self.angMin, angMax + 1)
+    if angMin != None and angMax is None :
+      plt.xlim(-1 + angMin, self.angMax + 1)
 
+    plt.yscale("log")
+    plt.grid()
+    plt.show(block=False)
+    input("Press Enter to continue...")
 
 
 

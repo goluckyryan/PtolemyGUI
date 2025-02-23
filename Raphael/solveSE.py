@@ -159,7 +159,7 @@ class SolvingSE:
     self.Ecm = 0.0
 
   def ConstructUsingAZ(self, A, ZA, a, Za, ELabPerA):
-    print(f"ConstructUsingAZ : {A}, {ZA}, {a}, {Za}, {ELabPerA}")
+    # print(f"ConstructUsingAZ : {A}, {ZA}, {a}, {Za}, {ELabPerA:.3f}")
     self.A_A = A
     self.A_a = a
     self.Z_A = ZA
@@ -172,7 +172,7 @@ class SolvingSE:
     self.Energy = ELabPerA
 
   def ConstructUsingSymbol(self, Sym_A, Sym_a, ELabPerA):
-    print(f"ConstructUsingSymbol : {Sym_A}, {Sym_a}, {ELabPerA}")
+    # print(f"ConstructUsingSymbol : {Sym_A}, {Sym_a}, {ELabPerA:.3f}")
     self.L = 0
     self.S = 0
     self.J = 0
