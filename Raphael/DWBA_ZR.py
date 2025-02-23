@@ -33,7 +33,7 @@ angList = []
 xsec = []
 
 start_time = time.time()
-for i in range(0, 181, 5):
+for i in range(0, 181, 10):
   angList.append(i)
   kaka = haha.AngDist(i)
   xsec.append(kaka)

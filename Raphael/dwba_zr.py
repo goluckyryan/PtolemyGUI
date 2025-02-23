@@ -299,11 +299,11 @@ class DWBA_ZR:
       plt.show(block=False)
       input("Press Enter to continue...")
 
-  def Gamma(self, L1:int, J1, L2:int, J2, m, ma, mb):
+  def Gamma(self, L1:int, J1, L2:int, J2, m:int, ma, mb):
     if  int(L1 + L2 + self.l)%2 != 0: #check if the sum of L1 + L2 + l is even
         return 0
     else:
-        fact0 = wigner_9j(S(2*self.j)/2, S(2*self.l)/2, S(2*self.s)/2, S(2*J1)/2, S(2*L1)/2, S(2*self.spin_a)/2, S(2*J2)/2, S(2*L2)/2, S(2*self.spin_b)/2).evalf()
+        fact0 = wigner_9j(S(2*self.j)/2, self.l, S(2*self.s)/2, S(2*J1)/2, L1, S(2*self.spin_a)/2, J2, S(2*L2)/2, S(2*self.spin_b)/2).evalf()
         if fact0 == 0:
             return 0
         else:
