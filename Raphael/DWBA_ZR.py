@@ -4,9 +4,8 @@ import time
 import matplotlib.pyplot as plt
 from dwba_zr import DWBA_ZR
 
-# haha = DWBA_ZR("16O", "d", "p", "17O", "1/2+", "1s1/2", 0.0, 10)
-
-haha = DWBA_ZR("16O", "d", "p", "17O", "5/2+", "0d5/2", 0.0, 10)
+haha = DWBA_ZR("16O", "d", "p", "17O", "1/2+", "1s1/2", 0.0, 10)
+# haha = DWBA_ZR("16O", "d", "p", "17O", "5/2+", "0d5/2", 0.0, 10)
 haha.FindBoundState()
 
 # haha.boundState.PlotBoundState()
@@ -21,7 +20,6 @@ haha.CalRadialIntegral()
 # haha.PrintRadialIntegral()
 # haha.PlotRadialIntegral()
 # haha.PlotRadialIntegralSigle(1, 1, -0.5)
-
 
 
 haha.CalAngDistribution(0, 180, 1)

@@ -180,6 +180,7 @@ class DWBA_ZR:
     self.xsecScalingfactor = D0 * mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
 
     self.PreCalNineJ()
+    self.PreCalClebschGordan()
 
   #========== end of contructor
 
@@ -361,6 +362,58 @@ class DWBA_ZR:
   def approximate_to_half_integer(self, value):
     return round(value * 2) / 2
   
+  def PreCalClebschGordan(self):
+    # stored in an array wit hindex of 2*j, 2*m
+    maxJ1 = self.maxL2 + self.spin_b + 1
+    maxJ2 = max(self.j, self.spin_a, self.spin_b) + 1
+    maxJ3 = maxJ1 + 1
+
+    self.maxJ1 = maxJ1
+    self.maxJ2 = maxJ2
+    self.maxJ3 = maxJ3
+    self.CG = np.zeros((int(2*maxJ1), int(4*maxJ1+2), int(2*maxJ2), int(4*maxJ2+2), int(2*maxJ3), int(4*maxJ3+2)) , dtype=float)
+
+    # print(maxJ1, maxJ2, maxJ3)
+    # print(self.CG.shape)
+
+    start_time = time.time()
+    for ma in np.arange(-self.spin_a, self.spin_a + 1, 1):
+      for mb in np.arange(-self.spin_b, self.spin_b + 1, 1):
+        for m in np.arange(-self.j + mb - ma, self.j + mb -ma + 1, 1):
+          for L1 in np.arange(0, self.maxL1+1):
+            for J1 in np.arange(L1 - self.spin_a, L1 + self.spin_a + 1, 1):
+              if J1 < 0 :
+                continue
+              for L2 in np.arange(L1 - self.l, L1 + self.l + 1, 1):
+                if L2 < 0:
+                  continue
+                for J2 in np.arange(L2 - self.spin_b, L2 + self.spin_b + 1, 1):
+                  if J2 < 0 :
+                    continue
+                  if not obeys_triangle_rule(J1, self.j, J2):
+                    continue
+                  if not(abs(m) <= L2):
+                    continue
+                  if int(L1 + L2 + self.l) % 2 != 0:
+                    continue
+                  if not(abs(m-mb+ma) <= self.j):
+                    continue
+                  if not(abs(mb-m) <= J2):
+                    continue
+                  # print(J2, mb-m,      self.j, m-mb+ma, J1,   ma,int(2*J2), int(2*(mb-m) + 2*maxJ1+1),      int(2*self.j), int(2*(m-mb+ma)+ 2*maxJ2+1), int(2*J1),     int(2*ma+ 2*maxJ3+1), clebsch_gordan(J2, mb-m,      self.j, m-mb+ma, J1,   ma))
+                  self.CG[int(2*J2), int(2*(mb-m) + 2*maxJ1+1),      int(2*self.j), int(2*(m-mb+ma)+ 2*maxJ2+1), int(2*J1),     int(2*ma+ 2*maxJ3+1)] = clebsch_gordan(J2, mb-m,      self.j, m-mb+ma, J1,   ma)
+                  self.CG[int(2*L1),            int(2*maxJ1+1), int(2*self.spin_a),        int(2*ma+ 2*maxJ2+1), int(2*J1),     int(2*ma+ 2*maxJ3+1)] = clebsch_gordan(L1,    0, self.spin_a,      ma, J1,   ma)
+                  self.CG[int(2*L2),   int(2*(-m) + 2*maxJ1+1), int(2*self.spin_b),        int(2*mb+ 2*maxJ2+1), int(2*J2), int(2*(mb-m)+ 2*maxJ3+1)] = clebsch_gordan(L2,   -m, self.spin_b,      mb, J2, mb-m)
+                  self.CG[int(2*L2),            int(2*maxJ1+1),      int(2*self.l),              int(2*maxJ2+1), int(2*L1),           int(2*maxJ3+1)] = clebsch_gordan(L2,    0,      self.l,       0, L1,    0)
+
+    stop_time = time.time()
+    print(f"Total time for pre-cal all CG {(stop_time - start_time) * 1000:.2f} msec")
+
+  def GetPreCalCG(self, j1, m1, j2, m2, j3, m3):
+    return self.CG[int(2*j1), int(2*m1 + 2*self.maxJ1+1), 
+                   int(2*j2), int(2*m2 + 2*self.maxJ2+1), 
+                   int(2*j3), int(2*m3 + 2*self.maxJ3+1)]
+
   def PreCalNineJ(self):
     self.NineJ = np.zeros((self.maxL1+1, int(2*self.spin_a+1), (2*self.l+1), int(2*self.spin_b+1)), dtype=float)
     for L1 in range(0, self.maxL1+1):
@@ -386,10 +439,14 @@ class DWBA_ZR:
         else:
             fact1 = pow(-1, m) * np.power(1j, L1-L2-self.l) * (2*L2+1) * np.sqrt((2*self.l+1)*(2*self.s+1)*(2*L1+1)*(2*J2+1))
             fact2 = np.sqrt( quantum_factorial(L2-abs(m)) / quantum_factorial(L2 + abs(m)) )
-            fact3 = clebsch_gordan(J2, mb-m,      self.j, m-mb+ma, J1,   ma)
-            fact4 = clebsch_gordan(L1,    0, self.spin_a,      ma, J1,   ma)
-            fact5 = clebsch_gordan(L2,   -m, self.spin_b,      mb, J2, mb-m)
-            fact6 = clebsch_gordan(L2,    0,      self.l,       0, L1,    0)
+            # fact3 = clebsch_gordan(J2, mb-m,      self.j, m-mb+ma, J1,   ma)
+            # fact4 = clebsch_gordan(L1,    0, self.spin_a,      ma, J1,   ma)
+            # fact5 = clebsch_gordan(L2,   -m, self.spin_b,      mb, J2, mb-m)
+            # fact6 = clebsch_gordan(L2,    0,      self.l,       0, L1,    0)
+            fact3 = self.GetPreCalCG(J2, mb-m,      self.j, m-mb+ma, J1,   ma)
+            fact4 = self.GetPreCalCG(L1,    0, self.spin_a,      ma, J1,   ma)
+            fact5 = self.GetPreCalCG(L2,   -m, self.spin_b,      mb, J2, mb-m)
+            fact6 = self.GetPreCalCG(L2,    0,      self.l,       0, L1,    0)
             # print(f"{fact1:.5f}, {fact2:.5f}, {fact3:.5f}, {fact4:.5f}, {fact5:.5f}, {fact6:.5f}")
             return fact0 * fact1 * fact2 * fact3 * fact4 * fact5 * fact6
 
