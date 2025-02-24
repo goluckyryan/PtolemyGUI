@@ -4,6 +4,7 @@ import math
 import numpy as np
 import re
 import sys, os
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
 from IAEANuclearData import IsotopeClass
@@ -22,7 +23,7 @@ class PotentialForm:
   #   self.R0 = self.r0 * math.pow(A, 1/3)
 
   def setAa(self, A, a):
-    self.R0= self.r0 * (math.pow(A, 1/3) + math.pow(a, 1/3))
+    self.R0= self.r0 * (A**(1./3.) +a**(1./3.))
 
   def output(self, x):
     return 0
@@ -58,7 +59,7 @@ class WoodsSaxonPot(PotentialForm):
     self.id = 1
 
   def output(self, x):
-    if self.V0 == 0.0:
+    if abs(self.V0) == 0.0:
       return 0
     else:
       return self.V0/(1 + math.exp((x-self.R0)/self.a0))
@@ -75,13 +76,15 @@ class SpinOrbit_Pot(PotentialForm):
     self.id = 2
 
   def output(self, x):
-    if self.V0 == 0.0 :
+    if abs(self.V0) == 0.0 :
       return 0
     else:
       if x > 0 :
-        return 4*(self.V0 * math.exp((x-self.R0)/self.a0))/(self.a0*math.pow(1+math.exp((x-self.R0)/self.a0),2))/x
+        exponent = (x - self.R0) / self.a0
+        return 4*(self.V0 * math.exp(exponent))/(self.a0*math.pow(1+math.exp(exponent),2))/x
       else :
-        return 4*1e+19
+        # return 4*1e+19
+        return 0
 
   def printPot(self):
     return super().printPot("Spin-Orbit")
@@ -94,7 +97,7 @@ class WS_SurfacePot(PotentialForm):
     self.id = 3
 
   def output(self, x):
-    if self.V0 == 0 :
+    if abs(self.V0) == 0 :
       return 0
     else:
       exponent = (x - self.R0) / self.a0
@@ -158,6 +161,8 @@ class SolvingSE:
     self.mu = (self.mass_A * self.mass_a)/(self.mass_A + self.mass_a)
     self.Ecm = 0.0
 
+    self.Factor = 2*self.mu/math.pow(self.hbarc,2)
+
   def ConstructUsingAZ(self, A, ZA, a, Za, ELabPerA):
     # print(f"ConstructUsingAZ : {A}, {ZA}, {a}, {Za}, {ELabPerA:.3f}")
     self.A_A = A
@@ -182,7 +187,6 @@ class SolvingSE:
     self.A_a, self.Z_a = haha.GetAZ(Sym_a)
     self.Z = self.Z_A * self.Z_a
     self.Energy = ELabPerA
-
 
   def CalCMConstants(self, useELabAsEcm = False):
     if useELabAsEcm:
@@ -240,10 +244,17 @@ class SolvingSE:
     value = 0
     for pot in self.potential_List:
       if isinstance(pot, PotentialForm):
-        if pot.id == 2 and self.L > 0:
-          value = value + self.LS() * pot.output(x)
+        if pot.id == 2 :
+          if self.L > 0:
+            value = value + self.LS() * pot.output(x)
         else:
           value = value + pot.output(x)
+
+    if x > 1e-6:
+      value = self.Factor*(value) + self.L*(1+self.L)/x/x
+    else:
+      value = 0
+
     return value
   
   def PrintPotentials(self):
@@ -251,14 +262,38 @@ class SolvingSE:
       if isinstance(pot, PotentialForm):
         pot.printPot()
 
+  def PlotPotential(self, L, J, maxR = None):
+    self.SetLJ(L, J)
+    pot = []
+    e_list = []
+    for r in self.rpos:
+      pot.append(self.__PotentialValue(r))
+
+    pot_real = [np.real(self.__PotentialValue(r)) for r in self.rpos]
+    pot_imag = [np.imag(self.__PotentialValue(r)) for r in self.rpos]
+
+    plt.figure()
+    plt.plot(self.rpos, pot_real, label='Real Part')
+    plt.plot(self.rpos, pot_imag, label='Imaginary Part')
+    plt.xlabel('r (fm)')
+    plt.ylabel('Potential (MeV)')
+    plt.title('Potential vs. r')
+    if maxR != None:
+      plt.xlim(-1, maxR)
+    plt.ylim([min(pot_real)*1.1, abs(min(pot_real)*1.1)])
+    plt.legend()
+    plt.grid(True)
+    plt.show(block=False)
+    input("press anykey to continous....")
+
   def GetPotentialValue(self, x):
     return self.__PotentialValue(x)
 
   # The G-function, u''[r] = G[r, u[r], u'[r]]
   def __G(self, x, y, dy):
     #return  -2*x*dy -2*y  # solution of gaussian
-    if x > 0 :
-      return 2*self.mu/math.pow(self.hbarc,2)*(self.__PotentialValue(x) - self.Ecm)*y + self.L*(1+self.L)/x/x*y
+    if x > 1e-6 :
+      return self.__PotentialValue(x)*y - self.Factor*self.Ecm*y
     else:
       return 0
 

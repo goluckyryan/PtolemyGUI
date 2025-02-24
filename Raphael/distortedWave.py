@@ -43,6 +43,13 @@ class DistortedWave(SolvingSE):
     if eta is None:
       eta = self.eta
     return np.angle(gamma(L+1+1j*eta))
+  
+  def CoulombHankel(self, sign, rho, L = None, eta = None) -> complex:
+    if L is None:
+      L = self.L
+    if eta is None:
+      eta = self.eta
+    return float(coulombg(L, eta, rho)) + sign * 1j * float(coulombf(L, eta, rho)) 
 
   def CalScatteringMatrix(self, normTo1 = False, maxL = None, verbose = False):
     start_time = time.time()  # Start the timer
@@ -56,7 +63,6 @@ class DistortedWave(SolvingSE):
     tempZeroList = np.zeros(len(self.rpos), dtype=np.complex128)
 
     for L in range(0, maxL+1):
-      # sigma = self.CoulombPhaseShift()
 
       temp_ScatMatrix = []
       temp_distortedWaveU = []
@@ -70,22 +76,67 @@ class DistortedWave(SolvingSE):
         self.SetLJ(L, J)
         self.SolveByRK4()
 
+        #============ 2-point using Hankel
+        # r1 = self.rpos[-2]
+        # u1 = self.solU[-2]
+        # Hp1 = self.CoulombHankel( 1, self.k * r1)
+        # Hm1 = self.CoulombHankel(-1, self.k * r1)
+
+        # r2 = self.rpos[-1]
+        # u2 = self.solU[-1]
+        # Hp2 = self.CoulombHankel( 1, self.k * r2)
+        # Hm2 = self.CoulombHankel(-1, self.k * r2)
+
+        # ScatMatrix = (u1 * Hm2 - Hm1 * u2) / (u1 * Hp2 - Hp1 * u2)
+        # norm = 2j * (u1 * Hp2 - Hp1 * u2 ) / (Hp1 * Hm2 - Hm1 * Hp2)
+
+        #=========== 2 point G, F, this is fastest
         r1 = self.rpos[-2]
+        u1 = self.solU[-2]
         f1 = float(coulombf(self.L, self.eta, self.k*r1))
         g1 = float(coulombg(self.L, self.eta, self.k*r1))
-        u1 = self.solU[-2]
 
         r2 = self.rpos[-1]
+        u2 = self.solU[-1]
         f2 = float(coulombf(self.L, self.eta, self.k*r2))
         g2 = float(coulombg(self.L, self.eta, self.k*r2))
-        u2 = self.solU[-1]
 
+        print(f"{L:2d}, {J:4.1f} | {r1:.3f}, {f1:10.6f}, {g1:10.6f} | {r2:.3f}, {f2:10.6f}, {g2:10.6f}")
+        
         det = f2*g1 - f1*g2
-
         A = (f2*u1 - u2*f1) / det
         B = (u2*g1 - g2*u1) / det
-
         ScatMatrix = (B + A * 1j)/(B - A * 1j)
+        norm = B - A * 1j
+
+        #============ 5 points slopes
+        # r_list = self.rpos[-5:]
+        # u_list = self.solU[-5:]
+        # f_list = [float(coulombf(self.L, self.eta, self.k * r)) for r in r_list]
+        # g_list = [float(coulombg(self.L, self.eta, self.k * r)) for r in r_list]
+        # u0 = u_list[2]
+        # f0 = f_list[2]
+        # g0 = g_list[2]
+        # du = FivePointsSlope(u_list, 2)
+        # df = FivePointsSlope(f_list, 2)
+        # dg = FivePointsSlope(g_list, 2)
+
+        # det = df*g0 - dg*f0
+        # A = (df*u0 - du*f0) /det
+        # B = (du*g0 - dg*u0) /det
+        # ScatMatrix = (B + A * 1j)/(B - A * 1j)
+        # norm = B - A * 1j
+
+        # #============ 100 points fitting
+        # r_list = self.rpos[-5:]
+        # u_list = self.solU[-5:]
+        # f_list = [float(coulombf(self.L, self.eta, self.k * r)) for r in r_list]
+        # g_list = [float(coulombg(self.L, self.eta, self.k * r)) for r in r_list]
+
+        # # Fit u_list to A * g_list + B * f_list
+        # A, B = np.linalg.lstsq(np.vstack([g_list, f_list]).T, u_list, rcond=None)[0]
+        # ScatMatrix = (B + A * 1j) / (B - A * 1j)
+        # norm = B - A * 1j
 
         if verbose:
           print(f"{{{L},{J}, {np.real(ScatMatrix):10.6f} +  {np.imag(ScatMatrix):10.6f}I}}")
@@ -96,8 +147,7 @@ class DistortedWave(SolvingSE):
         if normTo1 :
           dwU /= self.maxSolU
         else:
-          #dwU *= np.exp(-1j*sigma)/(B-A*1j)
-          dwU *= 1./(B-A*1j)
+          dwU *= 1./norm
         temp_distortedWaveU.append(dwU)
       
       self.ScatMatrix.append(temp_ScatMatrix)
@@ -239,25 +289,31 @@ class DistortedWave(SolvingSE):
     value = value / (2 * self.S + 1) 
     return value
 
-  def PlotDCSUnpolarized(self, thetaRange = 180, thetaStepDeg = 0.2, maxL = None, verbose = False):
-    theta_values = np.linspace(0, thetaRange, int(thetaRange/thetaStepDeg)+1)
+  def CalAngDistribution(self,  thetaRange = 180, thetaStepDeg = 0.2, maxL = None, verbose = False):
+    self.theta_list = np.linspace(0, thetaRange, int(thetaRange/thetaStepDeg)+1)
+    self.angDist = []
+    for theta in self.theta_list:
+      if theta == 0:
+        self.angDist.append(1)
+      else:
+        self.angDist.append(self.DCSUnpolarized(theta, maxL)/ self.RutherFord(theta))
+        if verbose :
+          print(f"{theta:6.2f}, {self.angDist[-1]:10.6f}")
 
+  def PrintAngDistribution(self):
+    print("======================= Angular Distribution")
+    for theta, dist in zip(self.theta_list, self.angDist):
+      print(f"{theta:5.1f}, {dist:10.3f}")
+
+  def PlotDCSUnpolarized(self):
     thetaTick = 30
+    thetaRange = max(self.theta_list)
     if thetaRange < 180:
       thetaTick = 10
 
-    y_values = []
-    for theta in theta_values:
-      if theta == 0:
-        y_values.append(1)
-      else:
-        y_values.append(self.DCSUnpolarized(theta, maxL)/ self.RutherFord(theta))
-        if verbose :
-          print(f"{theta:6.2f}, {y_values[-1]:10.6f}")
-
     plt.figure(figsize=(8, 6))
     # plt.plot(theta_values, y_values, marker='o', linestyle='-', color='blue')    
-    plt.plot(theta_values, y_values, linestyle='-', color='blue')
+    plt.plot(self.theta_list, self.angDist, linestyle='-', color='blue')
     plt.title("Differential Cross Section (Unpolarized)")
     plt.xlabel("Angle [deg]")
     plt.ylabel("D.C.S / Ruth")
