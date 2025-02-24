@@ -6,7 +6,7 @@ from solveSE import WoodsSaxonPot, CoulombPotential, SpinOrbit_Pot, WS_SurfacePo
 from mpmath import coulombf, coulombg
 
 import numpy as np
-from scipy.special import gamma, sph_harm, factorial
+from scipy.special import gamma, factorial
 import matplotlib.pyplot as plt
 
 from assLegendreP import associated_legendre_array
@@ -44,7 +44,7 @@ class DistortedWave(SolvingSE):
       eta = self.eta
     return np.angle(gamma(L+1+1j*eta))
 
-  def CalScatteringMatrix(self, maxL = None, verbose = False):
+  def CalScatteringMatrix(self, normTo1 = False, maxL = None, verbose = False):
     start_time = time.time()  # Start the timer
 
     if maxL is None:
@@ -93,8 +93,11 @@ class DistortedWave(SolvingSE):
         temp_ScatMatrix.append(ScatMatrix)
 
         dwU = np.array(self.solU, dtype=np.complex128)
-        #dwU *= np.exp(-1j*sigma)/(B-A*1j)
-        dwU *= 1./(B-A*1j)
+        if normTo1 :
+          dwU /= self.maxSolU
+        else:
+          #dwU *= np.exp(-1j*sigma)/(B-A*1j)
+          dwU *= 1./(B-A*1j)
         temp_distortedWaveU.append(dwU)
       
       self.ScatMatrix.append(temp_ScatMatrix)
