@@ -31,13 +31,13 @@ from dwba_zr import DWBA_ZR
 
 ####################################### Simple distorted wave calculation
 kaka = DistortedWave("11C", "p", 60)
-kaka.SetRange(0, 0.01, 2000)
+kaka.SetRange(0, 0.1, 1000)
 kaka.maxL = 14
 kaka.PrintInput()
 kaka.ClearPotential()
-kaka.AddPotential(WoodsSaxonPot(-34.714+6.749j, 1.122, 0.676), False) # False = only use 11C for radius calculation
+kaka.AddPotential(WoodsSaxonPot(-34.714-6.749j, 1.122, 0.676), False) # False = only use 11C for radius calculation
 kaka.AddPotential(WS_SurfacePot(       -3.194j, 1.307, 0.524), False)
-kaka.AddPotential(SpinOrbit_Pot( -4.532+0.477j, 0.894, 0.500), False)
+kaka.AddPotential(SpinOrbit_Pot( -4.532+0.477j, 0.894, 0.590), False)
 kaka.AddPotential(CoulombPotential(1.578), False)
 kaka.PrintPotentials()
 
@@ -48,3 +48,20 @@ kaka.PlotScatteringMatrix()
 # kaka.PlotDistortedWave(1, 1.5)
 
 # kaka.PlotDCSUnpolarized(180, 1, None, True)
+
+exit()
+
+kaka = DistortedWave("60Ni", "p", 30)
+kaka.PrintInput()
+kaka.ClearPotential()
+kaka.AddPotential(WoodsSaxonPot(-47.937-2.853j, 1.120, 0.669), False) # False = only use 11C for radius calculation
+kaka.AddPotential(WS_SurfacePot(       -6.878j, 1.280, 0.550), False)
+kaka.AddPotential(SpinOrbit_Pot( -5.250+0.162j, 1.020, 0.590), False)
+kaka.AddPotential(CoulombPotential(1.258), False)
+kaka.PrintPotentials()
+
+kaka.CalScatteringMatrix()
+kaka.PrintScatteringMatrix()
+# kaka.PlotScatteringMatrix()
+
+kaka.PlotDCSUnpolarized(180, 1, None, True)

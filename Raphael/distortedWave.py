@@ -162,6 +162,8 @@ class DistortedWave(SolvingSE):
       axes[i].plot(l_list, np.imag(sm), label="Imaginary", marker='x')
       axes[i].legend()
       axes[i].set_xlabel('L')
+      axes[i].set_xlim(-1, self.maxL+1)
+      axes[i].set_xticks(np.arange(0, self.maxL + 1, 2))
       axes[i].set_ylabel('Value')
       if self.S*2 % 2 == 0 :
         str = f'{int(i-self.S):+d}'
