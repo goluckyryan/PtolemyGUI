@@ -81,7 +81,7 @@ class IsotopeClass:
     if ASym == "h" :
       return [3, 2]
     if ASym == "a" :
-      return [3, 2]
+      return [4, 2]
     [A, sym] = self.BreakDownName(ASym)
     try:
       dudu = self.data[(self.data['symbol']==sym) & (self.data['A']==A)]
