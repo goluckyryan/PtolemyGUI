@@ -23,6 +23,7 @@ The foundation of the code base are
 * assLegendreP.py - for associate Legendre polynomial for positive m
 * clebschGordan.py - for custom build CG, which is faster
 * opticalPotential.py - for optical potential, only have An & Cai for deuteron and Kronning for proton now
+* reactionData.py - to digest and store the basic reaction data
 * ../Cleopatra/IAEANuclearData.py - for getting nuclear data like mass and spin-partiy
 * coulombWave.py - attemp to make fast CoulombWave....
 

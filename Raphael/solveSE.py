@@ -6,7 +6,7 @@ import re
 import sys, os
 import matplotlib.pyplot as plt
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
+# sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
 from IAEANuclearData import IsotopeClass
 
 class PotentialForm:

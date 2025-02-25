@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-from boundState import BoundState
-
-from solveSE import WoodsSaxonPot, CoulombPotential, SpinOrbit_Pot, WS_SurfacePot, SolvingSE
+from solveSE import SolvingSE
 from mpmath import coulombf, coulombg
 
 import numpy as np
