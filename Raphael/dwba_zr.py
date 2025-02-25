@@ -19,31 +19,39 @@ from solveSE import WoodsSaxonPot, CoulombPotential, SpinOrbit_Pot, WS_SurfacePo
 from distortedWave import DistortedWave
 import opticalPotentials as op
 
-class DWBA_ZR:
-  def __init__(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
-    iso = IsotopeClass()
-    
-    A_A, Z_A = iso.GetAZ(nu_A)
-    A_a, Z_a = iso.GetAZ(nu_a)
-    A_b, Z_b = iso.GetAZ(nu_b)
-    A_B, Z_B = iso.GetAZ(nu_B)
+  
+def approximate_to_half_integer(value):
+  return round(value * 2) / 2
 
-    self.ELab = A_a * ELabPerU
+class ReactionData:
+  def __init__(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+    self.SpinBalanced = self.ReactionDigestion(nu_A, nu_a, nu_b, nu_B, JB, orbital, ExB, ELabPerU)
+    
+
+  def ReactionDigestion(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+    iso = IsotopeClass()
+      
+    self.A_A, self.Z_A = iso.GetAZ(nu_A)
+    self.A_a, self.Z_a = iso.GetAZ(nu_a)
+    self.A_b, self.Z_b = iso.GetAZ(nu_b)
+    self.A_B, self.Z_B = iso.GetAZ(nu_B)
+
+    self.ELab = self.A_a * ELabPerU
 
     mass_A = iso.GetMassFromSym(nu_A)
     mass_a = iso.GetMassFromSym(nu_a)
     mass_b = iso.GetMassFromSym(nu_b)
     mass_B = iso.GetMassFromSym(nu_B)
-    self.ExB = ExB
+    ExB = ExB
 
     # sym_A = iso.GetSymbol(A_A, Z_A)
     # sym_B = iso.GetSymbol(A_B, Z_B)
 
-    spin_A_str = iso.GetJpi(A_A, Z_A)
+    spin_A_str = iso.GetJpi(self.A_A, self.Z_A)
     self.spin_A = float(eval(re.sub(r'[+-]', '', spin_A_str)))
     self.spin_B = float(eval(re.sub(r'[+-]', '', JB)))
 
-    if A_a == 2 and Z_a == 1:
+    if self.A_a == 2 and self.Z_a == 1:
         self.spin_a = 1.0
         self.spin_b = 0.5
     else:
@@ -52,36 +60,36 @@ class DWBA_ZR:
 
     #====== transfering nucleon
     self.s = 1/2 # spin of x, neutron or proton
-    A_x = abs(A_a - A_b)
-    Z_x = abs(Z_a - Z_b)
+    self.A_x = abs(self.A_a - self.A_b)
+    self.Z_x = abs(self.Z_a - self.Z_b)
 
-    mass_x = iso.GetMassFromAZ( A_x, Z_x)
+    mass_x = iso.GetMassFromAZ(self.A_x, self.Z_x)
 
     #======== core
-    if A_A < A_B : # (d,p)
-        A_c = A_A
-        Z_c = Z_A
-        BindingEnergy = mass_B - mass_A - mass_x + self.ExB
+    if self.A_A < self.A_B : # (d,p)
+        self.A_c = self.A_A
+        self.Z_c = self.Z_A
+        self.BindingEnergy = mass_B - mass_A - mass_x + ExB
     else:  #(p,d)
-        A_c = A_B
-        Z_c = Z_B
-        BindingEnergy = mass_A - mass_B - self.ExB - mass_x
+        self.A_c = self.A_B
+        self.Z_c = self.Z_B
+        self.BindingEnergy = mass_A - mass_B - ExB - mass_x
 
     #=================== digest orbital
     match = re.search(r'[a-zA-Z]', orbital)  # Find first letter
     if match:
         index = match.start()  # Get position of the first letter
         
-    node = int(orbital[:index])
+    self.node = int(orbital[:index])
     l_sym = orbital[index:index+1]
     j_sym = orbital[index+1:]
     self.j = eval(j_sym)
     self.l = op.ConvertLSym(l_sym)
 
-    self.j = self.approximate_to_half_integer(self.j)
-    self.s = self.approximate_to_half_integer(self.s)
-    self.spin_a = self.approximate_to_half_integer(self.spin_a)
-    self.spin_b = self.approximate_to_half_integer(self.spin_b)
+    self.j = approximate_to_half_integer(self.j)
+    self.s = approximate_to_half_integer(self.s)
+    self.spin_a = approximate_to_half_integer(self.spin_a)
+    self.spin_b = approximate_to_half_integer(self.spin_b)
 
     passJ = False
     if obeys_triangle_rule(self.spin_A, self.spin_B, self.j):
@@ -104,29 +112,83 @@ class DWBA_ZR:
     self.isSpinBalanced = passJ * passS * passL
     if self.isSpinBalanced == False :
       print("Fail angular momentum conservation.")
-      return
+      return False
     else:
       print("All Spin are balance.")
 
     self.reactionStr = f"{nu_A}({spin_A_str})({nu_a},{nu_b}){nu_B}({ExB:.3f}|{JB}, {orbital}) @ {ELabPerU:.1f} MeV/u"
-    print("==================================================")
-    print(self.reactionStr)
 
     self.Q_value = mass_A + mass_a - mass_b - mass_B - ExB
+    self.dwI = DistortedWave(nu_A, nu_a, self.ELab)
+
+    Ecm_I = self.dwI.Ecm
+    Ecm_O = Ecm_I + self.Q_value 
+    self.Eout = ((Ecm_O + mass_b + mass_B + ExB)**2 - (mass_b + mass_B + ExB)**2)/2/(mass_B + ExB)
+    self.dwO = DistortedWave(nu_B, nu_b, self.Eout)
+
+    Eout2 = self.ELab + self.Q_value #this is incorrec, but used in ptolmey infileCreator
+
+    print("==================================================")
+    print(self.reactionStr)
     print(f"Transfer Orbtial : {orbital}")
     print(f"Q-value : {self.Q_value:10.6f} MeV")
-    print(f"Binding : {BindingEnergy:10.6f} MeV")
+    print(f"Binding : {self.BindingEnergy:10.6f} MeV")
+    print(f"   Eout : {self.Eout} MeV | {Eout2}")
+
+    return True
+
+
+class DWBA_ZR:
+  def __init__(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+
+    self.reactDigest =  ReactionData(nu_A, nu_a, nu_b, nu_B, JB, orbital, ExB, ELabPerU)
+
+    if self.reactDigest.SpinBalanced == False :
+      return
+
+    A_c = self.reactDigest.A_c
+    Z_c = self.reactDigest.Z_c
+    A_x = self.reactDigest.A_x
+    Z_x = self.reactDigest.Z_x
+    node = self.reactDigest.node
+
+    self.l = self.reactDigest.l
+    self.j = self.reactDigest.j
+    BindingEnergy = self.reactDigest.BindingEnergy
+
+    A_A = self.reactDigest.A_A
+    Z_A = self.reactDigest.Z_A
+    A_a = self.reactDigest.A_a
+    Z_a = self.reactDigest.Z_a
+
+    A_b = self.reactDigest.A_b
+    Z_b = self.reactDigest.Z_b
+    A_B = self.reactDigest.A_B
+    Z_B = self.reactDigest.Z_B
+
+    self.s = self.reactDigest.s
+    self.spin_A = self.reactDigest.spin_A
+    self.spin_a = self.reactDigest.spin_a
+    self.spin_b = self.reactDigest.spin_b
+    self.spin_B = self.reactDigest.spin_B
+
+    self.ELab = self.reactDigest.ELab
+    self.Q_value = self.reactDigest.Q_value
+    self.Eout = self.reactDigest.Eout
+
+    self.reactionStr = self.reactDigest.reactionStr
 
     print("====================== Bound state ")
     self.boundState = BoundState(A_c, Z_c, A_x, Z_x, node, self.l, self.j, BindingEnergy)
     self.boundState.SetPotential(1.10, 0.65, -6, 1.25, 0.65, 1.30)
     
-
     print("====================== Incoming wave function ")
-    op.AnCai(A_A, Z_A, self.ELab)
+    if A_a == 2 and Z_a == 1:
+      op.AnCai(A_A, Z_A, self.ELab)
+    if A_a == 1 and Z_a == 1:
+      op.Koning(A_A, Z_A, self.ELab , Z_a)
 
-
-    self.dwI = DistortedWave(nu_A, nu_a, self.ELab)
+    self.dwI = self.reactDigest.dwI
     self.dwI.PrintInput()
     self.dwI.ClearPotential()
     self.dwI.AddPotential(WoodsSaxonPot(   -op.v,    op.r0,    op.a), False)
@@ -137,21 +199,17 @@ class DWBA_ZR:
     self.dwI.AddPotential(CoulombPotential( op.rc0), False)
     self.dwI.PrintPotentials()
 
-    self.mass_I = self.dwI.mu # reduced mass of incoming channel
-    self.k_I = self.dwI.k # wave number of incoming channel
     self.maxL1 = self.dwI.maxL
+
+    print("====================== Outgoing wave function ")
+    if A_b == 1 and Z_b == 1:
+      op.Koning(A_B, Z_B, self.Eout, Z_b)
+    if A_b == 2 and Z_b == 1:
+      op.AnCai(A_B, Z_B, self.Eout)
 
     self.maxL2 = self.maxL1 + self.l
 
-    
-    Ecm_I = self.dwI.Ecm
-    Ecm_O = Ecm_I + self.Q_value
-    Eout = ((Ecm_O + mass_b + mass_B + self.ExB)**2 - (mass_b + mass_B + ExB)**2)/2/mass_B
-
-    print("====================== Outgoing wave function ")
-    op.Koning(A_B, Z_B, self.ELab + self.Q_value - ExB, Z_b)
-
-    self.dwO = DistortedWave(nu_B, nu_b, Eout)
+    self.dwO = self.reactDigest.dwO
     self.dwO.spin_A = self.spin_B
     self.dwO.maxL = self.maxL2
     self.dwO.PrintInput()
@@ -165,19 +223,20 @@ class DWBA_ZR:
 
     self.dwO.PrintPotentials()
 
-    self.radialInt = None
+    #---------------------------------------- other constants
+    D0 = 1.55e+4 # for (d,p)
 
     mass_I = self.dwI.mu
+    mass_O = self.dwO.mu
     k_I = self.dwI.k
-    mass_O = self.dwO.mu # reduced mass of outgoing channel
     k_O = self.dwO.k # wave number of outgoing channel
-
-    D0 = 1.55e+4 # for (d,p)
 
     self.massBoverMassA = A_B/A_A
     self.ffactor = np.sqrt(4*np.pi)/k_I /k_O 
 
     self.xsecScalingfactor = D0 * mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
+
+    self.radialInt = None
 
     self.PreCalNineJ()
     self.PreCalClebschGordan()
@@ -207,7 +266,7 @@ class DWBA_ZR:
     return [L1, J1, L2, J2] 
 
 ###########################################################
-  def CalRadialIntegral(self):
+  def CalScatMatrixAndRadialIntegral(self):
     start_time = time.time()
     sm_I, wfu_I = self.dwI.CalScatteringMatrix()
     self.dwI.PrintScatteringMatrix()
@@ -358,10 +417,8 @@ class DWBA_ZR:
     plt.grid()
     plt.show(block=False)
     input("Press Enter to continue...")
-  
-  def approximate_to_half_integer(self, value):
-    return round(value * 2) / 2
-  
+
+
   def PreCalClebschGordan(self):
     # stored in an array wit hindex of 2*j, 2*m
     maxJ1 = self.maxL2 + self.spin_b + 1
@@ -372,9 +429,6 @@ class DWBA_ZR:
     self.maxJ2 = maxJ2
     self.maxJ3 = maxJ3
     self.CG = np.zeros((int(2*maxJ1), int(4*maxJ1+2), int(2*maxJ2), int(4*maxJ2+2), int(2*maxJ3), int(4*maxJ3+2)) , dtype=float)
-
-    # print(maxJ1, maxJ2, maxJ3)
-    # print(self.CG.shape)
 
     start_time = time.time()
     for ma in np.arange(-self.spin_a, self.spin_a + 1, 1):
@@ -408,6 +462,8 @@ class DWBA_ZR:
 
     stop_time = time.time()
     print(f"Total time for pre-cal all CG {(stop_time - start_time) * 1000:.2f} msec")
+    print(f"self.maxL1, maxJ1, maxJ2, maxJ3")
+    print(self.CG.shape)
 
   def GetPreCalCG(self, j1, m1, j2, m2, j3, m3):
     return self.CG[int(2*j1), int(2*m1 + 2*self.maxJ1+1), 
@@ -415,15 +471,18 @@ class DWBA_ZR:
                    int(2*j3), int(2*m3 + 2*self.maxJ3+1)]
 
   def PreCalNineJ(self):
+    start_time = time.time()
     self.NineJ = np.zeros((self.maxL1+1, int(2*self.spin_a+1), (2*self.l+1), int(2*self.spin_b+1)), dtype=float)
     for L1 in range(0, self.maxL1+1):
       for ind1 in range(0,  int(2*self.spin_a+1)):
         for indL2 in range(0, 2*self.l+1):
           for ind2 in range(0, int(2*self.spin_b+1)):
-            J1 = self.approximate_to_half_integer(L1 + ind1 - self.spin_a)
+            J1 = approximate_to_half_integer(L1 + ind1 - self.spin_a)
             L2 = int(L1 + indL2 - self.l)
-            J2 = self.approximate_to_half_integer(L2 + ind2 - self.spin_b)
+            J2 = approximate_to_half_integer(L2 + ind2 - self.spin_b)
             self.NineJ[L1, ind1, indL2, ind2] = wigner_9j(self.j, self.l, self.s, J1, L1, self.spin_a, J2, L2, self.spin_b)
+    stop_time = time.time()
+    print(f"Total time for pre-cal all 9j {(stop_time - start_time) * 1000:.2f} msec")
 
   def GetPreCalNineJ(self, L1:int, J1, L2:int, J2):
     [dummy, ind1, indL2, ind2] = self.ConvertLJ2RadialIndex(L1, J1, L2, J2)

@@ -24,6 +24,7 @@ The foundation of the code base are
 * clebschGordan.py - for custom build CG, which is faster
 * opticalPotential.py - for optical potential, only have An & Cai for deuteron and Kronning for proton now
 * ../Cleopatra/IAEANuclearData.py - for getting nuclear data like mass and spin-partiy
+* coulombWave.py - attemp to make fast CoulombWave....
 
 Next, we have 
 * solveSE.py 
@@ -48,8 +49,11 @@ for s-orbtial transfer, it takes 10 secs. for d-orbital, it takes like half minu
 # Limitation & future work
 * This is only for zero-range approximation, the angular distribution agree with experiment.
 * Only for (d,p) or (p,d) (not and need test), should be work for all single nucleon transfer reaction. 
-* Need to work for inelastic scattering
-* Need to implement the Finite-Range calcualtion
-* Need to work on the 2-nucleons transfers
-* Need to work on the Coupled-Channels
-* Need to have a C++ version for speed sake (or use multiple cores, or both)
+
+Need to 
+* work for inelastic scattering
+* implement the Finite-Range calcualtion
+* polarization
+* work on the 2-nucleons transfers
+* work on the Coupled-Channels
+* have a C++ version for speed sake (or use multiple cores, or both)

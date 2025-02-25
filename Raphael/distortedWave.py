@@ -101,7 +101,7 @@ class DistortedWave(SolvingSE):
         f2 = float(coulombf(self.L, self.eta, self.k*r2))
         g2 = float(coulombg(self.L, self.eta, self.k*r2))
 
-        print(f"{L:2d}, {J:4.1f} | {r1:.3f}, {f1:10.6f}, {g1:10.6f} | {r2:.3f}, {f2:10.6f}, {g2:10.6f}")
+        # print(f"{L:2d}, {J:4.1f} | {r1:.3f}, {f1:10.6f}, {g1:10.6f} | {r2:.3f}, {f2:10.6f}, {g2:10.6f}")
         
         det = f2*g1 - f1*g2
         A = (f2*u1 - u2*f1) / det
