@@ -9,8 +9,8 @@ import time
 from sympy import S
 from sympy.physics.quantum.cg import wigner_9j
 
-# sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
-# from IAEANuclearData import IsotopeClass
+sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
+from IAEANuclearData import IsotopeClass
 
 from assLegendreP import associated_legendre_array
 from clebschGordan import clebsch_gordan, quantum_factorial, obeys_triangle_rule
@@ -21,9 +21,9 @@ import opticalPotentials as op
 from reactionData import approximate_to_half_integer, ReactionData
   
 class DWBA_ZR:
-  def __init__(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+  def __init__(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
 
-    self.reactDigest =  ReactionData(nu_A, nu_a, nu_b, nu_B, JB, orbital, ExB, ELabPerU)
+    self.reactDigest =  ReactionData(nu_A, nu_a, nu_b, JB, orbital, ExB, ELabPerU)
 
     if self.reactDigest.SpinBalanced == False :
       return
@@ -106,19 +106,36 @@ class DWBA_ZR:
     self.dwO.PrintPotentials()
 
     #---------------------------------------- other constants
+    print("========================================")
     D0 = 1.55e+4 # for (d,p)
 
     mass_I = self.dwI.mu
-    mass_O = self.dwO.mu
     k_I = self.dwI.k
+    mass_O = self.dwO.mu
     k_O = self.dwO.k # wave number of outgoing channel
+
+    # print(f" mu(I) : {mass_I}")
+    # print(f"  k(I) : {k_I}")
+    # print(f" mu(O) : {mass_O}")
+    # print(f"  k(O) : {k_O}")
 
     self.massBoverMassA = A_B/A_A
     self.ffactor = np.sqrt(4*np.pi)/k_I /k_O 
 
-    self.xsecScalingfactor = D0 * mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
+    # print(f"spin A : {self.spin_A}")
+    # print(f"spin a : {self.spin_a}")
+    # print(f"spin B : {self.spin_B}")
+
+    # self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.s +1)
+    self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
+
+    # print(f" spin factor : {self.spinFactor}")
+
+    self.xsecScalingfactor = D0 * mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * self.spinFactor
 
     self.radialInt = None
+
+    print(f"Xsec Scaling factor : {self.xsecScalingfactor:.6f}")
 
     self.PreCalNineJ()
     self.PreCalClebschGordan()
@@ -132,7 +149,7 @@ class DWBA_ZR:
       return f"{int(2*spin):+d}/2"
 
   def FindBoundState(self):
-    self.boundState.FindPotentialDepth(-70, -45, 0.5)
+    self.boundState.FindPotentialDepth(-80, -45, 0.5)
 
   def ConvertLJ2RadialIndex(self, L1:int, J1, L2:int, J2):
     index1 = int(J1 - L1 + self.spin_a)
@@ -200,6 +217,7 @@ class DWBA_ZR:
             pf2 = np.exp(1j*self.dwO.CoulombPhaseShift(L2))
             integral = simpson (bs*wf1*wf2, dx=self.boundState.dr)
             indexL2 = int(L2 - L1 + self.l)
+            # product = integral * pf1 * pf2 
             product = integral * pf1 * pf2 * self.massBoverMassA
             self.radialInt[L1][index1][indexL2][index2] = product
             # if J1 == L1 + self.spin_a and L2 == L1 + 1  and J2 == L2 - self.spin_b:
@@ -279,10 +297,10 @@ class DWBA_ZR:
     plt.show(block=False)
     input("Press Enter to continue...")
 
-  def PlotScatteringMatrix(self, isIncoming):
-    if isIncoming :
+  def PlotIncomingScatteringMatrix(self):
       self.dwI.PlotScatteringMatrix()
-    else:
+
+  def PlotOutgoingScatteringMatrix(self):
       self.dwO.PlotScatteringMatrix()
 
   def PlotIncomingDistortedWave(self,  L, J, maxR = None):
@@ -344,8 +362,8 @@ class DWBA_ZR:
 
     stop_time = time.time()
     print(f"Total time for pre-cal all CG {(stop_time - start_time) * 1000:.2f} msec")
-    print(f"self.maxL1, maxJ1, maxJ2, maxJ3")
-    print(self.CG.shape)
+    print(f"max(L1 J1, L2, J2) = {self.maxL1}, {maxJ1}, {maxJ2}, {maxJ3}")
+    print("CG shape : ",self.CG.shape)
 
   def GetPreCalCG(self, j1, m1, j2, m2, j3, m3):
     return self.CG[int(2*j1), int(2*m1 + 2*self.maxJ1+1), 
@@ -462,9 +480,14 @@ class DWBA_ZR:
     stop_time = time.time()
     print(f"\nTotal time {(stop_time - start_time) :.2f} sec")
 
-  def PrintAngDist(self):
+  def PrintAngDist(self, step:int = 1):
+    count = 0
     for th, xs in zip(self.angList, self.angDist):
-      print(f"{th:6.1f}, {xs:13.10f}")
+      if step > 1 and count % step != 0:
+        count += 1
+        continue
+      print(f"{{{th:6.1f}, {xs:13.10f}}},")
+      count += 1
 
   def PlotAngDist(self, angMin = None, angMax = None):
     plt.plot(self.angList, self.angDist)

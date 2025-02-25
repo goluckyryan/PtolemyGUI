@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import re
-# sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../Cleopatra'))
 from IAEANuclearData import IsotopeClass
 
 from clebschGordan import  obeys_triangle_rule
@@ -12,32 +13,38 @@ def approximate_to_half_integer(value):
   return round(value * 2) / 2
 
 class ReactionData:
-  def __init__(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
-    self.SpinBalanced = self.ReactionDigestion(nu_A, nu_a, nu_b, nu_B, JB, orbital, ExB, ELabPerU)
+  def __init__(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+    self.SpinBalanced = self.ReactionDigestion(nu_A, nu_a, nu_b, JB, orbital, ExB, ELabPerU)
     
-
-  def ReactionDigestion(self, nu_A:str, nu_a:str, nu_b:str, nu_B:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+  def ReactionDigestion(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
     iso = IsotopeClass()
       
     self.A_A, self.Z_A = iso.GetAZ(nu_A)
     self.A_a, self.Z_a = iso.GetAZ(nu_a)
     self.A_b, self.Z_b = iso.GetAZ(nu_b)
-    self.A_B, self.Z_B = iso.GetAZ(nu_B)
+
+    self.A_B = self.A_A + self.A_a - self.A_b
+    self.Z_B = self.Z_A + self.Z_a - self.Z_b
 
     self.ELab = self.A_a * ELabPerU
 
     mass_A = iso.GetMassFromSym(nu_A)
     mass_a = iso.GetMassFromSym(nu_a)
     mass_b = iso.GetMassFromSym(nu_b)
-    mass_B = iso.GetMassFromSym(nu_B)
+    mass_B = iso.GetMassFromAZ(self.A_B, self.Z_B)
     ExB = ExB
 
-    # sym_A = iso.GetSymbol(A_A, Z_A)
-    # sym_B = iso.GetSymbol(A_B, Z_B)
+    self.sym_A = iso.GetSymbol(self.A_A, self.Z_A)
+    self.sym_B = iso.GetSymbol(self.A_B, self.Z_B)
+
+    nu_B = f"{self.A_B}{self.sym_B}"
+    # print(nu_B)
 
     spin_A_str = iso.GetJpi(self.A_A, self.Z_A)
     self.spin_A = float(eval(re.sub(r'[+-]', '', spin_A_str)))
     self.spin_B = float(eval(re.sub(r'[+-]', '', JB)))
+
+    print("-------- spin_B",self.spin_B)
 
     if self.A_a == 2 and self.Z_a == 1:
         self.spin_a = 1.0
@@ -69,10 +76,10 @@ class ReactionData:
         index = match.start()  # Get position of the first letter
         
     self.node = int(orbital[:index])
-    l_sym = orbital[index:index+1]
+    self.l_sym = orbital[index:index+1]
     j_sym = orbital[index+1:]
     self.j = eval(j_sym)
-    self.l = op.ConvertLSym(l_sym)
+    self.l = op.ConvertLSym(self.l_sym)
 
     self.j = approximate_to_half_integer(self.j)
     self.s = approximate_to_half_integer(self.s)
@@ -109,10 +116,15 @@ class ReactionData:
     self.Q_value = mass_A + mass_a - mass_b - mass_B - ExB
     self.dwI = DistortedWave(nu_A, nu_a, self.ELab)
 
+    self.mass_I = self.dwI.mu
+    self.k_I = self.dwI.k
+
     Ecm_I = self.dwI.Ecm
-    Ecm_O = Ecm_I + self.Q_value 
+    Ecm_O = Ecm_I + self.Q_value
     self.Eout = ((Ecm_O + mass_b + mass_B + ExB)**2 - (mass_b + mass_B + ExB)**2)/2/(mass_B + ExB)
     self.dwO = DistortedWave(nu_B, nu_b, self.Eout)
+
+    self.mass_O = self.dwO.mu
 
     Eout2 = self.ELab + self.Q_value #this is incorrec, but used in ptolmey infileCreator
 

@@ -289,7 +289,8 @@ def plot_Xsec(data, isRuth = False):
     global plotID
 
     x_data, y_data = data
-    plt.figure(figsize=(8, 5))
+    # plt.figure(figsize=(8, 5))
+    plt.figure()
     plt.plot(x_data, y_data, linestyle="-", color="b", label="Extracted Data")
     plt.xlabel("Angle [deg]")
     if isRuth:
@@ -390,18 +391,19 @@ extract_LmaxSaSb() ## must be run first
 bs_data = extract_BoundState()
 # plot_BoundState(bs_data)
 
-# sAmpIn, sAmpOut = extract_ScatAmp()
-# plot_SMatrix(sAmpIn, sa)
-# plot_SMatrix(sAmpOut, sb)
+sAmpIn, sAmpOut = extract_ScatAmp()
+plot_SMatrix(sAmpIn, sa)
+plot_SMatrix(sAmpOut, sb)
 
 # elXsec_data = extract_ElasticXsec()
 # plot_Xsec(elXsec_data)
 
 xsec_data = extract_Xsec()
 plot_Xsec(xsec_data)
-
 x_data, y_data = xsec_data
 for i, r in enumerate(x_data):
+    if i % 5 != 0:
+        continue
     print(f"{{{r:7.3f}, {y_data[i]:10.7f}}},")
 
 def plot_RadialMatrix2(ma:float, mb:float, isPlot:bool=True):
@@ -425,8 +427,6 @@ def plot_RadialMatrix2(ma:float, mb:float, isPlot:bool=True):
 
     return radmat
 
-
-
 rList, dwIn, dwOut = extract_DistortedWave()
 def plot_DW(isIncoming:bool, L:int, m:float):
     if isIncoming :
@@ -443,7 +443,6 @@ def CoulombPS(L, eta):
 
 r_list, bsW = bs_data
 interp_radial = interp.interp1d(r_list, bsW, kind='cubic')
-
 
 def CalRadialIntgeral(L, ma, mb, isPlot:bool = True, verbose:int = 1):
 
