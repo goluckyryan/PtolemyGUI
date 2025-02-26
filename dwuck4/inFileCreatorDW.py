@@ -65,7 +65,7 @@ BindingEnergy = reactionData.BindingEnergy
 
 #=================== outfile name
 fileOutName = str(sym_A) + str(A_A) + "_" + str(nu_a) + str(nu_b) + "_" \
-           + str(node) + str(l_sym) + str(int(2*j)) + "_" + str(Ex) + "_" + str(ELab) + ".in"
+           + str(node) + str(l_sym) + str(int(2*j)) + "_" + str(Ex) + "_" + str(ELab) + "_" + JB_pi +".in"
 
 
 #=================== find the maximum L for partial wave

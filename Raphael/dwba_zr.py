@@ -438,7 +438,7 @@ class DWBA_ZR:
 
             [dummy, index1, indexL2, index2] = self.ConvertLJ2RadialIndex(L1, J1, L2, J2)
             ri = self.radialInt[int(L1)][index1][indexL2][index2]
-            # print(f"{L1:2d}, {J1:4.1f}({index1:d}), {L2:2d}({indexL2:d}), {J2:4.1f}({index2:d}), {gg:10.6f}, {ri *self.ffactor :.10f}, {lp:10.6f}")
+            # print(f"{L1:2d}, {J1:4.1f}({index1:d}), {L2:2d}({indexL2:d}), {J2:4.1f}({index2:d}), {gg:10.6f}, {ri :.10f}, {lp:10.6f}")
 
             result +=  gg * lp * ri 
 
@@ -459,6 +459,7 @@ class DWBA_ZR:
         for m in np.arange(-self.j + mb - ma, self.j + mb -ma + 1, 1):
           haha = self.Beta(m, ma, mb)
           xsec += np.abs(haha)**2
+          # print(f"{ma:4.1f}, {mb:4.1f}, {m:4.0f}, {haha:.6f}, {np.abs(haha)**2:.6e}, {xsec:.6e}")
     
     return xsec * self.xsecScalingfactor * 10 # factor 10 for fm^2 = 10 mb
 
