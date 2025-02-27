@@ -21,9 +21,9 @@ import opticalPotentials as op
 from reactionData import approximate_to_half_integer, ReactionData
   
 class DWBA_ZR:
-  def __init__(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+  def __init__(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float, JA:str = None):
 
-    self.reactDigest =  ReactionData(nu_A, nu_a, nu_b, JB, orbital, ExB, ELabPerU)
+    self.reactDigest = ReactionData(nu_A, nu_a, nu_b, JB, orbital, ExB, ELabPerU, JA)
 
     if self.reactDigest.SpinBalanced == False :
       return
@@ -71,6 +71,7 @@ class DWBA_ZR:
       op.Koning(A_A, Z_A, self.ELab , Z_a)
 
     self.dwI = self.reactDigest.dwI
+    self.dwI.spin_A = self.spin_A
     self.dwI.PrintInput()
     self.dwI.ClearPotential()
     self.dwI.AddPotential(WoodsSaxonPot(   -op.v,    op.r0,    op.a), False)
@@ -107,7 +108,10 @@ class DWBA_ZR:
 
     #---------------------------------------- other constants
     print("========================================")
-    self.D0 = 1.55e+4 # for (d,p)
+    #TODO need to  do other reactions like (t,d)
+    #for (d,p), (p,d)
+    self.D0 = 1.55e+4 
+    self.Alsj2 = self.D0 * 3/2 # = A-{lsj}^2 for (d,p), 3/2 = (2s(deutron)+1)/(2s(neutron)+1) 
 
     mass_I = self.dwI.mu
     k_I = self.dwI.k
@@ -119,25 +123,29 @@ class DWBA_ZR:
     # print(f" mu(O) : {mass_O}")
     # print(f"  k(O) : {k_O}")
 
-    self.massBoverMassA = A_B/A_A
-    self.ffactor = np.sqrt(4*np.pi)/k_I /k_O 
+    self.massFactor = A_B/A_A
+    if A_A > A_B:
+      self.massFactor = A_A/A_B
 
     # print(f"spin A : {self.spin_A}")
     # print(f"spin a : {self.spin_a}")
     # print(f"spin B : {self.spin_B}")
 
     self.fmsq2mb = 10
-    self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.s +1)
-    # self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
-
+    self.spinFactor = 1. / (2*self.spin_A+1) / (2*self.spin_a +1)
     # print(f" spin factor : {self.spinFactor}")
 
-    self.xsecScalingfactor = mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * self.spinFactor * self.D0
+    self.transMatrixFactor = (2*self.spin_B + 1) * self.Alsj2 
+    if A_A > A_B:
+      self.transMatrixFactor =  (2*self.spin_A + 1) * self.Alsj2 
+
+    self.xsecScalingfactor = mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * self.spinFactor* self.transMatrixFactor
 
     self.radialInt = None
 
     print(f"        (JA, JB, s) : {self.spin_A}, {self.spin_B}, {self.s}")
     print(f"        Spin factor : {self.spinFactor:.6f}")
+    print(f"   tran.Mat. factor : {self.transMatrixFactor:.6f}")
     print(f"Xsec Scaling factor : {self.xsecScalingfactor:.6f}")
 
     self.PreCalNineJ()
@@ -170,33 +178,65 @@ class DWBA_ZR:
 ###########################################################
   def CalScatMatrixAndRadialIntegral(self):
     start_time = time.time()
-    sm_I, wfu_I = self.dwI.CalScatteringMatrix()
+    sm_I, wfu_I_temp = self.dwI.CalScatteringMatrix()
     self.dwI.PrintScatteringMatrix()
     
     sm_O, wfu_O_temp = self.dwO.CalScatteringMatrix()
     self.dwO.PrintScatteringMatrix()
 
+    #TODO need to check the mass of a and b, 
+    # if a > b, rescale the outgoing channel
+    # if b < a, rescale the incoming channel
+
     #============ rescale the outgoing wave 
     print("====================== Scaling the outgoing wave")
-    rpos_O_temp = self.dwO.rpos * self.massBoverMassA
-    self.rpos_O = []
-    rpos_O_filled = False
-    self.wfu_O = []
-    for L2 in range(0, self.maxL2 + 1):
-      temp_wfu_L = []
-      for k in range(0, int(2*self.spin_b)+1):
-        wfu_O_inter_real = interp1d(rpos_O_temp, np.real(wfu_O_temp[L2][k]), kind='cubic')
-        wfu_O_inter_imag = interp1d(rpos_O_temp, np.imag(wfu_O_temp[L2][k]), kind='cubic')
-        temp_wfu = []
-        for r in self.dwI.rpos:
-          if r > max(rpos_O_temp) :
-             break
-          if rpos_O_filled == False:
-            self.rpos_O.append(r)
-          temp_wfu.append(wfu_O_inter_real(r) + 1j * wfu_O_inter_imag(r))
-        rpos_O_filled = True
-        temp_wfu_L.append(temp_wfu)
-      self.wfu_O.append(temp_wfu_L)
+    if self.dwI.A_a > self.dwO.A_a : 
+      self.wfu_I = wfu_I_temp
+      self.rpos_I = self.dwI.rpos
+
+      rpos_O_temp = self.rpos_I * self.massFactor
+      self.rpos_O = []
+      rpos_O_filled = False
+      self.wfu_O = []
+      for L2 in range(0, self.maxL2 + 1):
+        temp_wfu_L = []
+        for k in range(0, int(2*self.spin_b)+1):
+          wfu_O_inter_real = interp1d(rpos_O_temp, np.real(wfu_O_temp[L2][k]), kind='cubic')
+          wfu_O_inter_imag = interp1d(rpos_O_temp, np.imag(wfu_O_temp[L2][k]), kind='cubic')
+          temp_wfu = []
+          for r in self.dwI.rpos:
+            if r > max(rpos_O_temp) :
+              break
+            if rpos_O_filled == False:
+              self.rpos_O.append(r)
+            temp_wfu.append(wfu_O_inter_real(r) + 1j * wfu_O_inter_imag(r))
+          rpos_O_filled = True
+          temp_wfu_L.append(temp_wfu)
+        self.wfu_O.append(temp_wfu_L)
+
+    else:
+      self.wfu_O = wfu_O_temp
+      self.rpos_O = self.dwO.rpos
+
+      rpos_I_temp = self.rpos_O * self.massFactor
+      self.rpos_I = []
+      rpos_I_filled = False
+      self.wfu_I = []
+      for L1 in range(0, self.maxL1 + 1):
+        temp_wfu_L = []
+        for k in range(0, int(2*self.spin_a)+1):
+          wfu_I_inter_real = interp1d(rpos_I_temp, np.real(wfu_I_temp[L1][k]), kind='cubic')
+          wfu_I_inter_imag = interp1d(rpos_I_temp, np.imag(wfu_I_temp[L1][k]), kind='cubic')
+          temp_wfu = []
+          for r in self.dwO.rpos:
+            if r > max(rpos_I_temp) :
+              break
+            if rpos_I_filled == False:
+              self.rpos_I.append(r)
+            temp_wfu.append(wfu_I_inter_real(r) + 1j * wfu_I_inter_imag(r))
+          rpos_I_filled = True
+          temp_wfu_L.append(temp_wfu)
+        self.wfu_I.append(temp_wfu_L)
 
     print("====================== Calculating Radial integrals")
     self.radialInt = np.zeros((self.maxL1+1, int(2*self.spin_a+1), int(2*self.l+1), int(2*self.spin_b+1)), dtype=complex)
@@ -207,7 +247,7 @@ class DWBA_ZR:
         if J1 < 0 :
           continue
         index1 = int(J1 - L1 + self.spin_a)
-        wf1 = wfu_I[L1][index1]
+        wf1 = self.wfu_I[L1][index1]
         for L2 in np.arange(L1 - self.l, L1 + self.l + 1, 1):
           if L2 < 0 :
             continue
@@ -222,7 +262,7 @@ class DWBA_ZR:
             integral = simpson(bs[:min_length] * wf1[:min_length] * wf2[:min_length], dx=self.boundState.dr)
             indexL2 = int(L2 - L1 + self.l)
             # product = integral * pf1 * pf2 
-            product = integral * pf1 * pf2 * self.massBoverMassA
+            product = integral * pf1 * pf2 * self.massFactor
             self.radialInt[L1][index1][indexL2][index2] = product
             # if J1 == L1 + self.spin_a and L2 == L1 + 1  and J2 == L2 - self.spin_b:
               # print(f"{L1:2d}, {J1:4.1f}({index1}), {L2:2d}({indexL2}), {J2:4.1f}({index2}), {integral * pf1 * pf2 * self.massBoverMassA:.6f}")
@@ -308,13 +348,22 @@ class DWBA_ZR:
       self.dwO.PlotScatteringMatrix()
 
   def PlotIncomingDistortedWave(self,  L, J, maxR = None):
-    self.dwI.PlotDistortedWave(L, J, maxR)
+    # self.dwI.PlotDistortedWave(L, J, maxR)
+    plt.plot(self.rpos_I, np.real(self.wfu_I[L][int(J-L + self.spin_a)]), label="Real")
+    plt.plot(self.rpos_I, np.imag(self.wfu_I[L][int(J-L + self.spin_a)]), label="Imag")
+    plt.title(f"Incoming Radial wave for L={L} and J={J}")
+    if maxR != None :
+      plt.xlim(-1, maxR) 
+    plt.legend()
+    plt.grid()
+    plt.show(block=False)
+    input("Press Enter to continue...")
     
   
   def PlotOutgoingDistortedWave(self, L, J, maxR = None):
     plt.plot(self.rpos_O, np.real(self.wfu_O[L][int(J-L + self.spin_b)]), label="Real")
     plt.plot(self.rpos_O, np.imag(self.wfu_O[L][int(J-L + self.spin_b)]), label="Imag")
-    plt.title(f"Radial wave function for L={L} and J={J}")
+    plt.title(f"Outgoing Radial wave for L={L} and J={J}")
     if maxR != None :
       plt.xlim(-1, maxR) 
     plt.legend()
@@ -450,7 +499,7 @@ class DWBA_ZR:
     if maxM is None:
       maxM = int(self.j + self.spin_b + self.spin_a)
     self.legendrePArray = associated_legendre_array(maxL, maxM, theta_deg)
-     
+
   def AngDist(self, theta_deg:float) -> float:
     xsec = 0
     self.PreCalLegendreP(theta_deg)

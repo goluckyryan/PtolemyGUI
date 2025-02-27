@@ -13,10 +13,10 @@ def approximate_to_half_integer(value):
   return round(value * 2) / 2
 
 class ReactionData:
-  def __init__(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
-    self.SpinBalanced = self.ReactionDigestion(nu_A, nu_a, nu_b, JB, orbital, ExB, ELabPerU)
+  def __init__(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float, JA:str = None):
+    self.SpinBalanced = self.ReactionDigestion(nu_A, nu_a, nu_b, JB, orbital, ExB, ELabPerU, JA)
     
-  def ReactionDigestion(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float):
+  def ReactionDigestion(self, nu_A:str, nu_a:str, nu_b:str, JB:str, orbital:str, ExB:float, ELabPerU:float, JA):
     iso = IsotopeClass()
       
     self.A_A, self.Z_A = iso.GetAZ(nu_A)
@@ -40,11 +40,15 @@ class ReactionData:
     nu_B = f"{self.A_B}{self.sym_B}"
     # print(nu_B)
 
-    spin_A_str = iso.GetJpi(self.A_A, self.Z_A)
+    if JA is not None:
+      spin_A_str = JA
+    else:
+      spin_A_str = iso.GetJpi(self.A_A, self.Z_A)
+
     self.spin_A = float(eval(re.sub(r'[+-]', '', spin_A_str)))
     self.spin_B = float(eval(re.sub(r'[+-]', '', JB)))
 
-    print("-------- spin_B",self.spin_B)
+    # print("-------- spin_B",self.spin_B)
 
     if self.A_a == 2 and self.Z_a == 1:
         self.spin_a = 1.0
@@ -108,8 +112,8 @@ class ReactionData:
     if self.isSpinBalanced == False :
       print("Fail angular momentum conservation.")
       return False
-    else:
-      print("All Spin are balance.")
+    # else:
+      # print("All Spin are balance.")
 
     self.reactionStr = f"{nu_A}({spin_A_str})({nu_a},{nu_b}){nu_B}({ExB:.3f}|{JB}, {orbital}) @ {ELabPerU:.1f} MeV/u"
 
