@@ -183,7 +183,7 @@ def extract_ElasticXsec(file_path=filename):
 
 
 #-------------------------------------------------------
-def extract_Xsec(file_path=filename):
+def extract_Xsec(factor:float = 10, file_path=filename):
     x_data, y_data = [], []
 
     start_line = None
@@ -203,7 +203,7 @@ def extract_Xsec(file_path=filename):
                     columns = line.split()
                     if len(columns) >= 2:
                         x_data.append(float(columns[0]))  # Convert to float
-                        y_data.append(float(columns[1])*10) ## factor convert fm^2 to mb
+                        y_data.append(float(columns[1])*factor) ## factor convert fm^2 to mb
 
     return [x_data, y_data]
 
@@ -398,12 +398,23 @@ plot_SMatrix(sAmpOut, sb)
 # elXsec_data = extract_ElasticXsec()
 # plot_Xsec(elXsec_data)
 
-xsec_data = extract_Xsec()
+JA=2.5
+JB=0
+j=2.5
+D0 = 1.55
+spinFactor=(2*JB+1)/(2*JA+1)/(2*j+1)
+scalingFactor=spinFactor*D0*10
+
+print(f"spin factor : {spinFactor}")
+print(f"         D0 : {D0}")
+print(f"    scaling : {scalingFactor}")
+
+xsec_data = extract_Xsec(scalingFactor)
 plot_Xsec(xsec_data)
 x_data, y_data = xsec_data
 for i, r in enumerate(x_data):
-    if i % 5 != 0:
-        continue
+    # if i % 5 != 0:
+    #     continue
     print(f"{{{r:7.3f}, {y_data[i]:10.7f}}},")
 
 def plot_RadialMatrix2(ma:float, mb:float, isPlot:bool=True):

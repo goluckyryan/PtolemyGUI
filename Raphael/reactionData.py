@@ -126,13 +126,14 @@ class ReactionData:
 
     self.mass_O = self.dwO.mu
 
-    Eout2 = self.ELab + self.Q_value #this is incorrec, but used in ptolmey infileCreator
+    # Eout2 = self.ELab + self.Q_value #this is incorrec, but used in ptolmey infileCreator
 
     print("==================================================")
     print(self.reactionStr)
     print(f"Transfer Orbtial : {orbital}")
     print(f"Q-value : {self.Q_value:10.6f} MeV")
     print(f"Binding : {self.BindingEnergy:10.6f} MeV")
-    print(f"   Eout : {self.Eout} MeV | {Eout2}")
+    # print(f"   Eout : {self.Eout} MeV | {Eout2}")
+    print(f"   Eout : {self.Eout} MeV ")
 
     return True

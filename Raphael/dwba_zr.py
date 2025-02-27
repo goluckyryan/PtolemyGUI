@@ -107,7 +107,7 @@ class DWBA_ZR:
 
     #---------------------------------------- other constants
     print("========================================")
-    D0 = 1.55e+4 # for (d,p)
+    self.D0 = 1.55e+4 # for (d,p)
 
     mass_I = self.dwI.mu
     k_I = self.dwI.k
@@ -126,15 +126,18 @@ class DWBA_ZR:
     # print(f"spin a : {self.spin_a}")
     # print(f"spin B : {self.spin_B}")
 
-    # self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.s +1)
-    self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
+    self.fmsq2mb = 10
+    self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.s +1)
+    # self.spinFactor = (2*self.spin_B + 1) / (2*self.spin_A+1) / (2*self.spin_a +1)
 
     # print(f" spin factor : {self.spinFactor}")
 
-    self.xsecScalingfactor = D0 * mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * self.spinFactor
+    self.xsecScalingfactor = mass_I * mass_O / np.pi / self.dwI.hbarc**4 / k_I**3 / k_O * self.spinFactor * self.D0
 
     self.radialInt = None
 
+    print(f"        (JA, JB, s) : {self.spin_A}, {self.spin_B}, {self.s}")
+    print(f"        Spin factor : {self.spinFactor:.6f}")
     print(f"Xsec Scaling factor : {self.xsecScalingfactor:.6f}")
 
     self.PreCalNineJ()
@@ -215,7 +218,8 @@ class DWBA_ZR:
             wf2 = self.wfu_O[int(L2)][index2]
             pf1 = np.exp(1j*self.dwI.CoulombPhaseShift(L1))
             pf2 = np.exp(1j*self.dwO.CoulombPhaseShift(L2))
-            integral = simpson (bs*wf1*wf2, dx=self.boundState.dr)
+            min_length = min(len(bs), len(wf1), len(wf2))
+            integral = simpson(bs[:min_length] * wf1[:min_length] * wf2[:min_length], dx=self.boundState.dr)
             indexL2 = int(L2 - L1 + self.l)
             # product = integral * pf1 * pf2 
             product = integral * pf1 * pf2 * self.massBoverMassA
@@ -398,10 +402,6 @@ class DWBA_ZR:
         else:
             fact1 = pow(-1, m) * np.power(1j, L1-L2-self.l) * (2*L2+1) * np.sqrt((2*self.l+1)*(2*self.s+1)*(2*L1+1)*(2*J2+1))
             fact2 = np.sqrt( quantum_factorial(L2-abs(m)) / quantum_factorial(L2 + abs(m)) )
-            # fact3 = clebsch_gordan(J2, mb-m,      self.j, m-mb+ma, J1,   ma)
-            # fact4 = clebsch_gordan(L1,    0, self.spin_a,      ma, J1,   ma)
-            # fact5 = clebsch_gordan(L2,   -m, self.spin_b,      mb, J2, mb-m)
-            # fact6 = clebsch_gordan(L2,    0,      self.l,       0, L1,    0)
             fact3 = self.GetPreCalCG(J2, mb-m,      self.j, m-mb+ma, J1,   ma)
             fact4 = self.GetPreCalCG(L1,    0, self.spin_a,      ma, J1,   ma)
             fact5 = self.GetPreCalCG(L2,   -m, self.spin_b,      mb, J2, mb-m)
@@ -461,7 +461,7 @@ class DWBA_ZR:
           xsec += np.abs(haha)**2
           # print(f"{ma:4.1f}, {mb:4.1f}, {m:4.0f}, {haha:.6f}, {np.abs(haha)**2:.6e}, {xsec:.6e}")
     
-    return xsec * self.xsecScalingfactor * 10 # factor 10 for fm^2 = 10 mb
+    return xsec * self.xsecScalingfactor *  self.fmsq2mb 
 
   def CalAngDistribution(self, angMin:float = 0, angMax:float = 180, angStep:float = 1):
     self.angMin = angMin
