@@ -1,0 +1,12 @@
+.DS_Store
+Doc
+
+fort.*
+
+*.in
+*.out
+
+test
+
+!mass20.txt
+!nubase_4.mas20.txt
