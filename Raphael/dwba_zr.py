@@ -530,13 +530,16 @@ class DWBA_ZR:
     stop_time = time.time()
     print(f"\nTotal time {(stop_time - start_time) :.2f} sec")
 
-  def PrintAngDist(self, step:int = 1):
+  def PrintAngDist(self, step:int = 1, isMathatica:bool = False):
     count = 0
+    end = "\n"
+    if isMathatica == True:
+      end = ""
     for th, xs in zip(self.angList, self.angDist):
       if step > 1 and count % step != 0:
         count += 1
         continue
-      print(f"{{{th:6.1f}, {xs:13.10f}}},")
+      print(f"{{{th:6.1f}, {xs:13.10f}}},", end=end)
       count += 1
 
   def PlotAngDist(self, angMin = None, angMax = None):
