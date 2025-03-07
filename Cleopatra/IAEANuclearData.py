@@ -128,7 +128,7 @@ class IsotopeClass:
     except:
       return "0x"
 
-  def GetJpi(self, ASym : str):
+  def GetJpi_ASym(self, ASym : str):
     [A, sym] = self.BreakDownName(ASym)
     try:
       dudu = self.data[(self.data['symbol']==sym) & (self.data['A']==A)]
@@ -182,7 +182,7 @@ class IsotopeClass:
     [A, Z] = self.GetAZ(ASym)
     print("========================= ", ASym)
     print("A : %d, Z : %d, N : %d" % (A, Z, A-Z))
-    print("      Jpi : ", self.GetJpi(ASym))
+    print("      Jpi : ", self.GetJpi_ASym(ASym))
     print("half-live : %.2f sec" % (self.GetHalfLife(ASym)))
     print("     Mass : %9.2f MeV" % (self.GetMassFromSym(ASym) ))
     print("  Binding : %9.2f MeV/A" % (self.GetBindingPerA(ASym)))
