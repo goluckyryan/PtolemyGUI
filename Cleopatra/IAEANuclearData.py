@@ -196,7 +196,7 @@ class IsotopeClass:
     [A, Z] = self.GetAZ(ASym)
     print("<br>========================= ", ASym)
     print("<br>A : %d, Z : %d, N : %d" % (A, Z, A-Z))
-    print("<br>      Jpi : ", self.GetJpi(ASym))
+    print("<br>      Jpi : ", self.GetJpi_ASym(ASym))
     print("<br>half-live : %.2f sec" % (self.GetHalfLife(ASym)))
     print("<br>     Mass : %9.2f MeV" % (self.GetMassFromSym(ASym) ))
     print("<br>  Binding : %9.2f MeV/A" % (self.GetBindingPerA(ASym)))
