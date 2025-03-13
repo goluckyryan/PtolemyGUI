@@ -85,87 +85,87 @@ with open(fileOutName, "w") as file:
     file.write(f"{0.1:+08.4f}{15:+08.4f}\n")
 #===== Block 5
     if A_a == 2 :
-        op.AnCai(A_A, Z_A, A_a*ELab)
+        pot = op.AnCai(A_A, Z_A, A_a*ELab)
     else:
-        op.Koning(A_A, Z_A, A_a*ELab, Z_a)
+        pot = op.Koning(A_A, Z_A, A_a*ELab, Z_a)
 
     file.write(f"{A_a*ELab:+08.4f}")
     file.write(f"{A_a:+08.4f}")
     file.write(f"{Z_a:+08.4f}")
     file.write(f"{A_A:+08.4f}")
     file.write(f"{Z_A:+08.4f}")
-    file.write(f"{op.rc0:+08.4f}")
+    file.write(f"{pot.rc0:+08.4f}")
     file.write(f"{"":8s}")
     file.write(f"{"":8s}")
     file.write(f"{2*spin_a:+08.4f}\n")
     # Woods-Saxon
     file.write(f"{1:+08.4f}") 
-    file.write(f"{-op.v:+08.4f}") # real
-    file.write(f"{op.r0:+08.4f}") # 
-    file.write(f"{op.a:+08.4f}") # 
+    file.write(f"{-pot.v:+08.4f}") # real
+    file.write(f"{pot.r0:+08.4f}") # 
+    file.write(f"{pot.a:+08.4f}") # 
     file.write(f"{"":8s}") # spin-orbit skipped
-    file.write(f"{-op.vi:+08.4f}") # imag
-    file.write(f"{op.ri0:+08.4f}") # 
-    file.write(f"{op.ai:+08.4f}\n") # 
+    file.write(f"{-pot.vi:+08.4f}") # imag
+    file.write(f"{pot.ri0:+08.4f}") # 
+    file.write(f"{pot.ai:+08.4f}\n") # 
     # Woods-Saxon surface
     file.write(f"{2:+08.4f}") 
     file.write(f"{"":8s}") # real
     file.write(f"{"":8s}") # 
     file.write(f"{"":8s}") # 
     file.write(f"{"":8s}") # spin-orbit skipped
-    file.write(f"{4*op.vsi:+08.4f}") # imag
-    file.write(f"{op.rsi0:+08.4f}") # 
-    file.write(f"{op.asi:+08.4f}\n") # 
+    file.write(f"{4*pot.vsi:+08.4f}") # imag
+    file.write(f"{pot.rsi0:+08.4f}") # 
+    file.write(f"{pot.asi:+08.4f}\n") # 
     # Spin-Orbit 
     file.write(f"{-4:+08.4f}") 
-    file.write(f"{-4*op.vso:+08.4f}") # real
-    file.write(f"{op.rso0:+08.4f}") # 
-    file.write(f"{op.aso:+08.4f}") # 
+    file.write(f"{-4*pot.vso:+08.4f}") # real
+    file.write(f"{pot.rso0:+08.4f}") # 
+    file.write(f"{pot.aso:+08.4f}") # 
     file.write(f"{"":8s}") # spin-orbit skipped
-    file.write(f"{-4*op.vsoi:+08.4f}") # imag
-    file.write(f"{op.rsoi0:+08.4f}") # 
-    file.write(f"{op.asoi:+08.4f}\n") # 
+    file.write(f"{-4*pot.vsoi:+08.4f}") # imag
+    file.write(f"{pot.rsoi0:+08.4f}") # 
+    file.write(f"{pot.asoi:+08.4f}\n") # 
 #===== Block 6
     if A_a == 2 :
-        op.Koning(A_B, Z_B, A_a*ELab + Q_value - Ex, Z_b)
+        pot = op.Koning(A_B, Z_B, A_a*ELab + Q_value - Ex, Z_b)
     else:
-        op.AnCai(A_B, Z_B, A_a*ELab + Q_value - Ex)
+        pot = op.AnCai(A_B, Z_B, A_a*ELab + Q_value - Ex)
     file.write(f"{Q_value:+08.4f}")
     file.write(f"{A_b:+08.4f}")
     file.write(f"{Z_b:+08.4f}")
     file.write(f"{A_B:+08.4f}")
     file.write(f"{Z_B:+08.4f}")
-    file.write(f"{op.rc0:+08.4f}")
+    file.write(f"{pot.rc0:+08.4f}")
     file.write(f"{"":8s}")
     file.write(f"{"":8s}")
     file.write(f"{2*spin_b:+08.4f}\n")
     # Woods-Saxon
     file.write(f"{1:+08.4f}") 
-    file.write(f"{-op.v:+08.4f}") # real
-    file.write(f"{op.r0:+08.4f}") # 
-    file.write(f"{op.a:+08.4f}") # 
+    file.write(f"{-pot.v:+08.4f}") # real
+    file.write(f"{pot.r0:+08.4f}") # 
+    file.write(f"{pot.a:+08.4f}") # 
     file.write(f"{"":8s}") # spin-orbit skipped
-    file.write(f"{-op.vi:+08.4f}") # imag
-    file.write(f"{op.ri0:+08.4f}") # 
-    file.write(f"{op.ai:+08.4f}\n") # 
+    file.write(f"{-pot.vi:+08.4f}") # imag
+    file.write(f"{pot.ri0:+08.4f}") # 
+    file.write(f"{pot.ai:+08.4f}\n") # 
     # Woods-Saxon surface
     file.write(f"{2:+08.4f}") 
     file.write(f"{"":8s}") # real
     file.write(f"{"":8s}") # 
     file.write(f"{"":8s}") # 
     file.write(f"{"":8s}") # spin-orbit skipped
-    file.write(f"{4*op.vsi:+08.4f}") # imag
-    file.write(f"{op.rsi0:+08.4f}") # 
-    file.write(f"{op.asi:+08.4f}\n") # 
+    file.write(f"{4*pot.vsi:+08.4f}") # imag
+    file.write(f"{pot.rsi0:+08.4f}") # 
+    file.write(f"{pot.asi:+08.4f}\n") # 
     # Spin-Orbit 
     file.write(f"{-4:+08.4f}") 
-    file.write(f"{-4*op.vso:+08.4f}") # real
-    file.write(f"{op.rso0:+08.4f}") # 
-    file.write(f"{op.aso:+08.4f}") # 
+    file.write(f"{-4*pot.vso:+08.4f}") # real
+    file.write(f"{pot.rso0:+08.4f}") # 
+    file.write(f"{pot.aso:+08.4f}") # 
     file.write(f"{"":8s}") # spin-orbit skipped
-    file.write(f"{-4*op.vsoi:+08.4f}") # imag
-    file.write(f"{op.rsoi0:+08.4f}") # 
-    file.write(f"{op.asoi:+08.4f}\n") # 
+    file.write(f"{-4*pot.vsoi:+08.4f}") # imag
+    file.write(f"{pot.rsoi0:+08.4f}") # 
+    file.write(f"{pot.asoi:+08.4f}\n") # 
 #====== bound state
     file.write(f"{BindingEnergy:+08.4f}")
     file.write(f"{A_x:+08.4f}")

@@ -66,29 +66,29 @@ class DWBA_ZR:
     
     print("====================== Incoming wave function ")
     if A_a == 2 and Z_a == 1:
-      op.AnCai(A_A, Z_A, self.ELab)
+      pot = op.AnCai(A_A, Z_A, self.ELab)
     if A_a == 1 and Z_a == 1:
-      op.Koning(A_A, Z_A, self.ELab , Z_a)
+      pot = op.Koning(A_A, Z_A, self.ELab , Z_a)
 
     self.dwI = self.reactDigest.dwI
     self.dwI.spin_A = self.spin_A
     self.dwI.PrintInput()
     self.dwI.ClearPotential()
-    self.dwI.AddPotential(WoodsSaxonPot(   -op.v,    op.r0,    op.a), False)
-    self.dwI.AddPotential(WoodsSaxonPot(-1j*op.vi,   op.ri0,   op.ai), False)
-    self.dwI.AddPotential(WS_SurfacePot(-1j*op.vsi,  op.rsi0,  op.asi), False)
-    self.dwI.AddPotential(SpinOrbit_Pot(   -op.vso,  op.rso0,  op.aso), False)
-    self.dwI.AddPotential(SpinOrbit_Pot(-1j*op.vsoi, op.rsoi0, op.asoi), False)
-    self.dwI.AddPotential(CoulombPotential( op.rc0), False)
+    self.dwI.AddPotential(WoodsSaxonPot(   -pot.v,    pot.r0,    pot.a), False)
+    self.dwI.AddPotential(WoodsSaxonPot(-1j*pot.vi,   pot.ri0,   pot.ai), False)
+    self.dwI.AddPotential(WS_SurfacePot(-1j*pot.vsi,  pot.rsi0,  pot.asi), False)
+    self.dwI.AddPotential(SpinOrbit_Pot(   -pot.vso,  pot.rso0,  pot.aso), False)
+    self.dwI.AddPotential(SpinOrbit_Pot(-1j*pot.vsoi, pot.rsoi0, pot.asoi), False)
+    self.dwI.AddPotential(CoulombPotential( pot.rc0), False)
     self.dwI.PrintPotentials()
 
     self.maxL1 = self.dwI.maxL
 
     print("====================== Outgoing wave function ")
     if A_b == 1 and Z_b == 1:
-      op.Koning(A_B, Z_B, self.Eout, Z_b)
+      pot = op.Koning(A_B, Z_B, self.Eout, Z_b)
     if A_b == 2 and Z_b == 1:
-      op.AnCai(A_B, Z_B, self.Eout)
+      pot = op.AnCai(A_B, Z_B, self.Eout)
 
     self.maxL2 = self.maxL1 + self.l
 
@@ -97,12 +97,12 @@ class DWBA_ZR:
     self.dwO.maxL = self.maxL2
     self.dwO.PrintInput()
     self.dwO.ClearPotential()
-    self.dwO.AddPotential(WoodsSaxonPot(   -op.v,    op.r0,    op.a), False)
-    self.dwO.AddPotential(WoodsSaxonPot(-1j*op.vi,   op.ri0,   op.ai), False)
-    self.dwO.AddPotential(WS_SurfacePot(-1j*op.vsi,  op.rsi0,  op.asi), False)
-    self.dwO.AddPotential(SpinOrbit_Pot(   -op.vso,  op.rso0,  op.aso), False)
-    self.dwO.AddPotential(SpinOrbit_Pot(-1j*op.vsoi, op.rsoi0, op.asoi), False)
-    self.dwO.AddPotential(CoulombPotential( op.rc0), False)
+    self.dwO.AddPotential(WoodsSaxonPot(   -pot.v,    pot.r0,    pot.a), False)
+    self.dwO.AddPotential(WoodsSaxonPot(-1j*pot.vi,   pot.ri0,   pot.ai), False)
+    self.dwO.AddPotential(WS_SurfacePot(-1j*pot.vsi,  pot.rsi0,  pot.asi), False)
+    self.dwO.AddPotential(SpinOrbit_Pot(   -pot.vso,  pot.rso0,  pot.aso), False)
+    self.dwO.AddPotential(SpinOrbit_Pot(-1j*pot.vsoi, pot.rsoi0, pot.asoi), False)
+    self.dwO.AddPotential(CoulombPotential( pot.rc0), False)
 
     self.dwO.PrintPotentials()
 
