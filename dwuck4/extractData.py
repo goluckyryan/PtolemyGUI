@@ -390,19 +390,21 @@ extract_LmaxSaSb() ## must be run first
 bs_data = extract_BoundState()
 # plot_BoundState(bs_data)
 
-sAmpIn, sAmpOut = extract_ScatAmp()
-plot_SMatrix(sAmpIn, sa)
-plot_SMatrix(sAmpOut, sb)
+# sAmpIn, sAmpOut = extract_ScatAmp()
+# plot_SMatrix(sAmpIn, sa)
+# plot_SMatrix(sAmpOut, sb)
 
 # elXsec_data = extract_ElasticXsec()
 # plot_Xsec(elXsec_data)
 
-JA=2.5
-JB=0
-j=2.5
-D0 = 1.55
+JA=0
+JB=2
+j=2
+D0 = 1.0
 spinFactor=(2*JB+1)/(2*JA+1)/(2*j+1)
 scalingFactor=spinFactor*D0*10
+
+scalingFactor = 5.74
 
 print(f"spin factor : {spinFactor}")
 print(f"         D0 : {D0}")

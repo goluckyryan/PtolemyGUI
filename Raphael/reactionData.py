@@ -8,6 +8,12 @@ from clebschGordan import  obeys_triangle_rule
 from distortedWave import DistortedWave
 import opticalPotentials as op
 
+from enum import Enum
+
+class ReactionType(Enum):
+   inelastic = 1 #also elastic
+   transfer = 2
+   chargeExchange = 3
   
 def approximate_to_half_integer(value):
   return round(value * 2) / 2
@@ -50,41 +56,76 @@ class ReactionData:
 
     # print("-------- spin_B",self.spin_B)
 
-    if self.A_a == 2 and self.Z_a == 1:
-        self.spin_a = 1.0
-        self.spin_b = 0.5
-    else:
-        self.spin_a = 0.5
-        self.spin_b = 1.0
 
-    #====== transfering nucleon
-    self.s = 1/2 # spin of x, neutron or proton
-    self.A_x = abs(self.A_a - self.A_b)
-    self.Z_x = abs(self.Z_a - self.Z_b)
+    #------------ check reaction type
+    self.reactionType = 0
+    if self.A_a == self.A_b and self.Z_a == self.Z_b :
+        self.reactionType = ReactionType.inelastic
 
-    mass_x = iso.GetMassFromAZ(self.A_x, self.Z_x)
+    if self.A_a == self.A_b and self.Z_a != self.Z_b :
+      self.reactionType = ReactionType.chargeExchange
+      print("Charge exchaneg reaction does not support.")
+      return
 
-    #======== core
-    if self.A_A < self.A_B : # (d,p)
-        self.A_c = self.A_A
-        self.Z_c = self.Z_A
-        self.BindingEnergy = mass_B - mass_A - mass_x + ExB
-    else:  #(p,d)
-        self.A_c = self.A_B
-        self.Z_c = self.Z_B
-        self.BindingEnergy = mass_A - mass_B - ExB - mass_x
+    if self.A_a != self.A_b :
+      self.reactionType = ReactionType.transfer
+    
+    # if self.A_a == 2 and self.Z_a == 1:
+    #     self.spin_a = 1.0
+    #     self.spin_b = 0.5
+    # else:
+    #     self.spin_a = 0.5
+    #     self.spin_b = 1.0
 
-    #=================== digest orbital
-    match = re.search(r'[a-zA-Z]', orbital)  # Find first letter
-    if match:
-        index = match.start()  # Get position of the first letter
-        
-    self.node = int(orbital[:index])
-    self.l_sym = orbital[index:index+1]
-    j_sym = orbital[index+1:]
-    self.j = eval(j_sym)
-    self.l = op.ConvertLSym(self.l_sym)
+    self.spin_a = float(eval(re.sub(r'[+-]', '', iso.GetJpi(self.A_a, self.Z_a))))
+    self.spin_b = float(eval(re.sub(r'[+-]', '', iso.GetJpi(self.A_b, self.Z_b))))
 
+    if self.reactionType == ReactionType.transfer:
+      #====== transfering nucleon
+      self.s = 1/2 # spin of x, neutron or proton
+      self.A_x = abs(self.A_a - self.A_b)
+      self.Z_x = abs(self.Z_a - self.Z_b)
+
+      mass_x = iso.GetMassFromAZ(self.A_x, self.Z_x)
+
+      #======== core
+      if self.A_A < self.A_B : # (d,p)
+          self.A_c = self.A_A
+          self.Z_c = self.Z_A
+          self.BindingEnergy = mass_B - mass_A - mass_x + ExB
+      else:  #(p,d)
+          self.A_c = self.A_B
+          self.Z_c = self.Z_B
+          self.BindingEnergy = mass_A - mass_B - ExB - mass_x
+
+      #=================== digest orbital
+      match = re.search(r'[a-zA-Z]', orbital)  # Find first letter
+      if match:
+          index = match.start()  # Get position of the first letter
+
+      self.node = int(orbital[:index])
+      self.l_sym = orbital[index:index+1]
+      j_sym = orbital[index+1:]
+      self.j = eval(j_sym)
+      self.l = op.ConvertLSym(self.l_sym)
+
+    if self.reactionType == ReactionType.inelastic :
+      self.s = 0 
+      self.A_x = 0
+      self.Z_x = 0
+
+      mass_x = 0
+
+      self.A_c = self.A_A
+      self.Z_c = self.Z_A
+      self.BindingEnergy = 0
+
+      self.node = 0
+      self.l_sym = "0"
+      self.l = 2
+      self.j = 2
+
+    #======== regulate spin to half integer
     self.j = approximate_to_half_integer(self.j)
     self.s = approximate_to_half_integer(self.s)
     self.spin_a = approximate_to_half_integer(self.spin_a)
