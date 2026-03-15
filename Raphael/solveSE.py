@@ -216,7 +216,7 @@ class SolvingSE:
       L = self.L
     if J is None:
       J = self.J
-    return (J*(J+1)-L*(L+1)-self.S*(self.S))/2.
+    return (J*(J+1)-L*(L+1)-self.S*(self.S+1))/2.
 
   # set the range in fm
   def SetRange(self, rStart, dr, nStep):
