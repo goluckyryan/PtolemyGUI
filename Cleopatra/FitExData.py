@@ -35,34 +35,37 @@ class Fitting():
     self.expData = []
 
     current_data = []
+    current_fitOption = []
 
     with open(fileName, "r") as file:
       for line in file:
         line = line.strip()
-        
+
         if not line:
           continue
 
         if line.startswith("$"):
           continue
-            
+
         # Check for dataSet lines
         if line.startswith("#="):
           # If there's an existing data block, save it
           if current_data:
             self.expData.append(np.array(current_data, dtype=float))
+            self.fitOption.append(current_fitOption)
             current_data = []
-              
+            current_fitOption = []
+
           # Extract dataSet Name
           dataName = line.split()[1:]
           self.dataName_list.append(" ".join(dataName))
-        
+
         # Check for fit option lines
         elif line.startswith("fit"):
-          # Add fit option parameters
+          # Add fit option parameters for the current block
           fit_params = [x.strip(',') for x in line.split()[1:]]
-          self.fitOption.append(fit_params)
-        
+          current_fitOption.extend(fit_params)
+
         # Parse data lines
         elif not line.startswith("#"):
           values = [float(x) for x in line.split()]
@@ -71,6 +74,7 @@ class Fitting():
       # Append the last block
       if current_data:
         self.expData.append(np.array(current_data, dtype=float))
+        self.fitOption.append(current_fitOption)
 
     # Convert to numpy arrays
     self.dataName_list = np.array(self.dataName_list)

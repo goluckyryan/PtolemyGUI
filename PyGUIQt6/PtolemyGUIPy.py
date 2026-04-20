@@ -28,6 +28,7 @@ class MyWindow(QMainWindow):
     self.resize(1000, 800)
     self.setMinimumSize(1000, 800)
 
+    self.cleopatra_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Cleopatra'))
     self.lastDWBARecord = "lastDWBA.txt"
     self.DWBAFileName = ""
     self.ExpDataFileName = ""
@@ -303,14 +304,20 @@ class MyWindow(QMainWindow):
         self.leFileName.setText(fileName)
     except Exception as e:
       self.text_edit.setText(f"Failed to load file:\n{e}")
-      self.leStatus.setText(f"Failed to load file:\n{e}")
+      self.leStatus.setText(f"Failed to load file: {e}")
     
   def SaveFile(self):
     if self.bnSaveFile.isEnabled() :
       file_path = self.leFileName.text()
-      with open(file_path, 'w') as file:
-        file.write(self.text_edit.toPlainText())
-        self.leStatus.setText(f"File saved to: {file_path}")
+      if not file_path:
+        self.leStatus.setText("No file path specified.")
+        return
+      try:
+        with open(file_path, 'w') as file:
+          file.write(self.text_edit.toPlainText())
+          self.leStatus.setText(f"File saved to: {file_path}")
+      except Exception as e:
+        self.leStatus.setText(f"Failed to save file: {e}")
   
   def SaveExpDataFile(self):
     if self.bnSaveExpDataFile.isEnabled() :
@@ -322,10 +329,13 @@ class MyWindow(QMainWindow):
         self.leExpDataFileName.setText(file_path)
         self.ExpDataFileName = file_path
 
+      if not file_path:
+        return
+
       with open(file_path, 'w') as file:
         file.write(self.text_edit.toPlainText())
         self.leStatus.setText(f"File saved to: {file_path}")
-      
+
       self.SaveLastOpenDWBASource()
 
   def DeleteinOutXsecFiles(self):
@@ -352,7 +362,7 @@ class MyWindow(QMainWindow):
     
     self.SaveFile()
     
-    self.BashCommand("cd ../Cleopatra; make;cd ../PyGUIQt6")
+    self.BashCommand(f"make -C {self.cleopatra_dir}")
 
     print(" Is Create InFile : " + str(self.chkCreateInFile.isChecked() ))
     print("   Is Run Ptolemy : " + str(self.chkRunPtolemy.isChecked() ))
@@ -364,17 +374,17 @@ class MyWindow(QMainWindow):
       aMax  = " " + str(self.sbAngMax.value())
       aSize = " " + str(self.sbAngSize.value())
 
-      self.BashCommand("../Cleopatra/InFileCreator " +  self.DWBAFileName + aMin + aMax + aSize)
+      self.BashCommand(f"{self.cleopatra_dir}/InFileCreator " + self.DWBAFileName + aMin + aMax + aSize)
 
     isRunOK = True
     if self.chkRunPtolemy.isChecked() :
       os_name = platform.system()
 
       if os_name == "Linux" :
-        self.BashCommand("../Cleopatra/ptolemy <" + self.DWBAFileName + ".in>" + " " + self.DWBAFileName + ".out")
+        self.BashCommand(f"{self.cleopatra_dir}/ptolemy <" + self.DWBAFileName + ".in> " + self.DWBAFileName + ".out")
       
       if os_name == "Darwin":
-        self.BashCommand("../Cleopatra/ptolemy_mac <" + self.DWBAFileName + ".in>" + " " + self.DWBAFileName + ".out")
+        self.BashCommand(f"{self.cleopatra_dir}/ptolemy_mac <" + self.DWBAFileName + ".in> " + self.DWBAFileName + ".out")
 
       if self.bashResult.returncode != 0 :
         isRunOK = False
@@ -410,11 +420,11 @@ class MyWindow(QMainWindow):
 
   def closeEvent(self, event):
     if self.plot_window:
-      self.plot_window.close()  # Close the PlotWindow when MainWindow closes
+      self.plot_window.close()
     if self.Ex_window:
-      self.Ex_window.close()  # Close the PlotWindow when MainWindow closes
-      self.Ex_window.__del__()
-    
+      self.Ex_window.cleanup()
+      self.Ex_window.close()
+
     self.fitting.close_plots()
     print("============== Bye Bye ========== ")
     event.accept()  # Accept the event to proceed with closing the main window

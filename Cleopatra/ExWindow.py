@@ -159,6 +159,10 @@ class ExWindow(QWidget):
     self.html_file = html_file  # Store for cleanup
     self.web_view.setUrl(QUrl.fromLocalFile(html_file))
 
-  def __del__(self):
+  def cleanup(self):
     if self.html_file and os.path.exists(self.html_file):
-       os.remove(self.html_file)
+      os.remove(self.html_file)
+      self.html_file = None
+
+  def __del__(self):
+    self.cleanup()
