@@ -123,9 +123,14 @@ class DWBA_ZR:
     # print(f" mu(O) : {mass_O}")
     # print(f"  k(O) : {k_O}")
 
-    self.massFactor = A_B/A_A
+    # ZR coordinate constraint: r_out = (A_A/A_B) * r_in  for stripping (A_B > A_A)
+    #                              r_in  = (A_B/A_A) * r_out for pickup  (A_A > A_B)
+    # i.e. massFactor always = min(A_A,A_B) / max(A_A,A_B) < 1
+    # The larger system (heavier nucleus) is the denominator.
+    # Ptolemy ZR constraint: RO = (A_A/A_B)*RI for stripping -> massFactor = A_A/A_B
+    self.massFactor = A_A/A_B
     if A_A > A_B:
-      self.massFactor = A_A/A_B
+      self.massFactor = A_B/A_A
 
     # print(f"spin A : {self.spin_A}")
     # print(f"spin a : {self.spin_a}")
