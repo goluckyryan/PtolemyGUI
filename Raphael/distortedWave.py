@@ -18,6 +18,190 @@ def FivePointsSlope(data, n):
 from clebschGordan import clebsch_gordan, KroneckerDelta
 import time
 
+
+def wynn_epsilon(S):
+  """Wynn's epsilon algorithm for sequence acceleration.
+  
+  Faithful port of Ptolemy's EPSLON subroutine (source.f lines 13330-13524).
+  Walks the anti-diagonal of the epsilon table with singular-rule and
+  loss-of-significance handling.
+  
+  Args:
+      S: list/array of complex partial sums
+  Returns:
+      Accelerated estimate of the series limit (complex)
+  """
+  N = len(S)
+  if N < 5:
+    return S[-1] if N > 0 else 0.0
+  
+  BIG = 1e38
+  SMLNUM = 1e-300
+  DEPS = 1e-5
+  
+  apx = lambda z: abs(complex(z).real) + abs(complex(z).imag)
+  
+  X = [complex(s) for s in S]
+  n = N
+  acc = max(1e-8, DEPS**2)
+  
+  while True:
+    if n <= 0:
+      return X[0] if X else S[-1]
+    fin = X[n-1]
+    if n == 1:
+      return fin
+    
+    derr = max(apx(fin - X[i]) for i in range(n))
+    derr /= (apx(fin) + SMLNUM)
+    if derr <= acc:
+      return fin
+    acc = DEPS
+    if n < 6:
+      return fin
+    
+    ISW1 = False
+    ISW2 = False
+    
+    d = X[3] - X[2]
+    W1 = complex(BIG) if apx(d) == 0 else 1.0/d
+    
+    d = X[1] - X[0]
+    W5 = complex(BIG) if apx(d) == 0 else 1.0/d
+    
+    d = X[2] - X[1]
+    if apx(d) == 0:
+      W4, T, W2, W3 = complex(BIG), X[1], X[2], complex(BIG)
+    else:
+      W4 = 1.0/d
+      dd = W4 - W5
+      T = complex(BIG) if apx(dd) == 0 else X[1] + 1.0/dd
+      diff = W1 - W4
+      if apx(diff) == 0:
+        W2 = complex(BIG)
+        ISW2 = (T.real != BIG)
+        W3 = W4
+      else:
+        W2 = X[2] + 1.0/diff
+        dd = W2 - T
+        W3 = complex(BIG) if apx(dd) == 0 else W4 + 1.0/dd
+    
+    ISW1 = ISW2
+    ISW2 = False
+    IMIN = 3
+    truncated = False
+    
+    i = 4
+    while i < n:
+      iaus = i - IMIN - 1
+      W4 = complex(BIG)
+      W5 = X[i-1]
+      dX = X[i] - X[i-1]
+      
+      action = 'store_w2'
+      W6 = complex(BIG)
+      
+      if apx(dX) != 0:
+        W4 = 1.0 / dX
+        if W1.real == BIG:
+          W6 = complex(BIG)
+          action = 'store_w2'
+        else:
+          W6 = W4 - W1
+          if apx(W6) <= 1e-12 * apx(W4):
+            ISW2 = True
+            if apx(W6) == 0:
+              W5 = complex(BIG)
+              W6 = W1
+              if W2.real != BIG:
+                action = 'compute_28'
+              else:
+                action = 'store_w2'
+                ISW2 = False
+            else:
+              W5 = X[i-1] + 1.0/W6
+              if apx(W5) < 1e-10 * apx(X[i-1]) and apx(W5) != 0:
+                n = iaus
+                truncated = True
+                break
+              dd = W5 - W2
+              if apx(dd) != 0:
+                W6 = W1 + 1.0/dd
+                action = 'compute_28'
+              else:
+                W6 = complex(BIG)
+                action = 'store_w2'
+                ISW2 = False
+          else:
+            W5 = X[i-1] + 1.0/W6
+            if apx(W5) < 1e-10 * apx(X[i-1]) and apx(W5) != 0:
+              n = iaus
+              truncated = True
+              break
+            dd = W5 - W2
+            if apx(dd) != 0:
+              W6 = W1 + 1.0/dd
+              action = 'compute_28'
+            else:
+              W6 = complex(BIG)
+              action = 'store_w2'
+              ISW2 = False
+      else:
+        dd = W5 - W2
+        if apx(dd) != 0:
+          W6 = W1 + 1.0/dd
+          action = 'compute_28'
+        else:
+          W6 = complex(BIG)
+          action = 'store_w2'
+          ISW2 = False
+      
+      if action == 'store_w2':
+        X[iaus] = W2
+      elif action == 'compute_28':
+        if ISW1:
+          if W2.real == BIG:
+            X[iaus] = W5 + T - X[i-2]
+          else:
+            d1, d2, d3 = W2 - W5, W2 - T, X[i-2] - W2
+            if apx(d1) == 0 or apx(d2) == 0 or apx(d3) == 0:
+              X[iaus] = complex(BIG)
+              IMIN = i
+            else:
+              w7 = W5/d1 + T/d2 + X[i-2]/d3
+              if apx(w7 + 1.0) == 0:
+                X[iaus] = complex(BIG)
+                IMIN = i
+              else:
+                X[iaus] = w7 * W2 / (1.0 + w7)
+        else:
+          dd = W6 - W3
+          if apx(dd) == 0:
+            X[iaus] = complex(BIG)
+            IMIN = i
+          else:
+            X[iaus] = W2 + 1.0/dd
+            if apx(X[iaus]) < 1e-10 * apx(W2) and apx(X[iaus]) != 0:
+              n = iaus
+              truncated = True
+              break
+      
+      if W2.real == BIG:
+        X[iaus] = complex(BIG)
+        IMIN = i
+      
+      W1 = W4
+      T = W2
+      W2 = W5
+      W3 = W6
+      ISW1 = ISW2
+      ISW2 = False
+      i += 1
+    
+    if not truncated:
+      n = n - (IMIN + 1)
+
+
 ############################################################
 class DistortedWave(SolvingSE):
   def __init__(self, target, projectile, ELab):
@@ -29,6 +213,7 @@ class DistortedWave(SolvingSE):
     self.distortedWaveU = []
 
     self.legendreArray = []
+    self.useWynn = False
 
   def SetLJ(self, L, J):
     self.L = L
@@ -262,10 +447,16 @@ class DistortedWave(SolvingSE):
     else :
       return 0
 
+  def SetWynn(self, enable=True):
+    """Enable/disable Wynn epsilon acceleration for partial wave sums."""
+    self.useWynn = enable
+
   def NuclearScatteringAmp(self, v, v0, maxL = None ) -> complex:
     value = 0
     if maxL is None:
       maxL = self.maxL
+    m = int(abs(v0 - v))
+    partial_sums = [] if self.useWynn else None
     for l in range(0, maxL+1):
       if abs(v0-v) > l :
         value += 0
@@ -273,7 +464,11 @@ class DistortedWave(SolvingSE):
         coulPS = self.CoulombPhaseShift(l)
         fact = pow(-1, v0-v) * np.sqrt(factorial(l - abs(v0-v))/factorial(l + abs(v0-v)))
         value += (2*l+1) * fact * self.GetPreCalLegendre(l, v0-v) * np.exp(2j * coulPS)* self.GMatrix1Spin(v, v0, l)
+        if partial_sums is not None:
+          partial_sums.append(value / 2j / self.k)
 
+    if partial_sums is not None and len(partial_sums) >= 6:
+      return wynn_epsilon(partial_sums)
     return value / 2j / self.k
   
   def DCSUnpolarized(self, theta_deg, maxL = None):
