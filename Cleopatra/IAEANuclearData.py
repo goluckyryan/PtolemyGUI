@@ -4,30 +4,65 @@ import pandas as pd
 import urllib.request
 import re
 import numpy
+import os
+import sys
+import glob
 
 me = 0.51099895000 # +- 15
 mp = 938.27208816 # +- 29
 mn = 939.56542052 # +- 54
-ma = 3727.37915 
+ma = 3727.37915
+
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_CSV_NAME = 'IAEA_NuclearData.csv'
 
 class IsotopeClass:
   def __init__(self):
     self.livechart = "https://nds.iaea.org/relnsd/v0/data?"
     self.data = None
+    self.csv_path = os.path.join(_SCRIPT_DIR, _CSV_NAME)
 
     self.DownloadData()
 
+  def _find_csv_nearby(self):
+    repo_root = os.path.dirname(_SCRIPT_DIR)
+    for path in glob.glob(os.path.join(repo_root, '**', _CSV_NAME), recursive=True):
+      return path
+    return None
+
   def DownloadData(self):
-    # Read the saved CSV file back into a DataFrame
-    try :
-      self.data = pd.read_csv('IAEA_NuclearData.csv')
-    except FileNotFoundError:
-      # the service URL
+    if os.path.isfile(self.csv_path):
+      self.data = pd.read_csv(self.csv_path)
+      return
+
+    try:
       url = self.livechart + "fields=ground_states&nuclides=all"
       self.data = self.lc_read_csv(url)
       self.data.insert(0, 'A', self.data['z'] + self.data['n'])
-      self.data.to_csv('IAEA_NuclearData.csv', index=False)
-      self.data = pd.read_csv('IAEA_NuclearData.csv')
+      self.data.to_csv(self.csv_path, index=False)
+      self.data = pd.read_csv(self.csv_path)
+      return
+    except Exception:
+      pass
+
+    found = self._find_csv_nearby()
+    if found:
+      self.data = pd.read_csv(found)
+      self.data.to_csv(self.csv_path, index=False)
+      return
+
+    raise FileNotFoundError(
+      f"Cannot find {_CSV_NAME} and IAEA API is unreachable. "
+      f"Place {_CSV_NAME} in {_SCRIPT_DIR} manually."
+    )
+
+  @staticmethod
+  def check_or_exit():
+    try:
+      return IsotopeClass()
+    except FileNotFoundError as e:
+      print(f"\033[91mERROR: {e}\033[0m", file=sys.stderr)
+      sys.exit(1)
 
   def lc_read_csv(self, url):    
     req = urllib.request.Request(url)

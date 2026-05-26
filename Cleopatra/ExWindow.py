@@ -25,7 +25,7 @@ class ExWindow(QWidget):
     self.ASym = ""
     self.maxEx = 0
     self.data = None
-    self.Iso = IsotopeClass()
+    self.Iso = IsotopeClass.check_or_exit()
 
     self.save_button = QPushButton("Save Plot as Image")
     self.save_button.clicked.connect(self.save_plot)

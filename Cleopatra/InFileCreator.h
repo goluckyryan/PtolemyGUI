@@ -137,7 +137,7 @@ int InFileCreator(string readFile, string infile, double angMin, double angMax, 
     }
     
     // Continues to decode the input string
-    string gsSpinA = str0[1];
+    string gsSpinparityA = str0[1];
 
     string gsSpinA = gsSpinparityA.substr(0, gsSpinparityA.length()-1);
     string gsParityA = gsSpinparityA.substr(gsSpinparityA.length()-1);
